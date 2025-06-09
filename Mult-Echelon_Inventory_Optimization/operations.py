@@ -1,4 +1,4 @@
-from stockpyl.eoq import economic_order_quantity
+# from stockpyl.eoq import economic_order_quantity
 from math import floor,sqrt
 from Preassumptions import ORDERING_COST, HOLDING_COST, LEAD_TIME
 
