@@ -9,9 +9,7 @@ def aggregate_store_monthly(df_main, date_col='TimeWeek', value_col='Actual'):
 
     # Perform aggregation
     store_monthly = df.groupby(['Store', 'Year', 'Month'])[value_col].sum().reset_index()
-    # store_monthly = df.groupby(['Store', 'Year', 'Month'])[value_col].().reset_index()
-    print(store_monthly.head())
-    # store_monthly["std_demand"]=df.groupby(['Store', 'Year', 'Month'])[value_col].rolling(window=3, min_periods=1).mean().reset_index()
+    # print(store_monthly.head())
     # Group and apply rolling average
     rolling_result = (
     df
