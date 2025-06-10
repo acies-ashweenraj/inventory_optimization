@@ -4,7 +4,7 @@ from Preassumptions import CODE_MAP,HOLDING_COST,LEAD_TIME,ORDERING_COST,Z_SCORE
 
 
 def dc_distribution(dc_df,warehouse_df):
-    warehouse_df=warehouse_df.merge(dc_df[["DC_Monthly_Demand","total_stock"]],on="key",how="left")
+    warehouse_df=warehouse_df.merge(dc_df[["key","DC_Monthly_Demand","total_stock"]],on="key",how="left")
     for i in range(len(warehouse_df)):
         warehouse_df.loc[i,"demand_split"]=warehouse_df.loc[i,"Warehouse_Monthly_Demand"]/warehouse_df.loc[i,"DC_Monthly_Demand"]
         warehouse_df.loc[i,"warehouse_total_stock"]=warehouse_df.loc[i,"demand_split"]*warehouse_df.loc[i,"total_stock"]

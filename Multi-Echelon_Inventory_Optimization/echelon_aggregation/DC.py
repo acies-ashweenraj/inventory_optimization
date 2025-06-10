@@ -25,9 +25,9 @@ def dc_data(df):
         forecasted_df.loc[i,"reorder_point"]=operations.reorder_point(forecasted_df.loc[i,"DC_Monthly_Demand"],forecasted_df.loc[i,"effective_lead_time"])
         forecasted_df.loc[i,"safety_stock"] = operations.safety_stock(Z_SCORE,lead_time,forecasted_df.loc[i,"std_demand"])
         forecasted_df.loc[i,"total_stock"] = forecasted_df.loc[i,"safety_stock"] + forecasted_df.loc[i,"DC_Monthly_Demand"]
-        forecasted_df["key"] = forecasted_df["DC"].astype(str) + "_" + \
-                        forecasted_df["Year"].astype(str) + "_" + \
-                        forecasted_df["Month"].astype(str)
+        forecasted_df.loc[i,"key"] = forecasted_df.loc[i,"DC"].astype(str) + "_" + \
+                        forecasted_df.loc[i,"Year"].astype(str) + "_" + \
+                        forecasted_df.loc[i,"Month"].astype(str)
     return forecasted_df
 
 # def store_data(df_filepath,ordering_cost,holding_cost,lead_time):

@@ -17,6 +17,8 @@ def store_data(df):
         # holding_cost = operations.get_holding_cost(forecasted_df.loc[i,"Store"])
         # lead_time = operations.get_lead_time(forecasted_df.loc[i,"Warehouse"],forecasted_df.loc[i,"Store"])
         
+        key = next((k for k, v in CODE_MAP.items() if v == "DC"), None)
+        forecasted_df.loc[i,"DC"]=key
         forecasted_df.loc[i,"monthly_eoq"]=operations.eoq_manual(ordering_cost,holding_cost,forecasted_df.loc[i,"Store_Monthly_Demand"])
 
         forecasted_df.loc[i,'cycle_time']=operations.cycle_time(forecasted_df.loc[i,'monthly_eoq'],forecasted_df.loc[i,'Store_Monthly_Demand'])
@@ -26,4 +28,7 @@ def store_data(df):
     
         forecasted_df.loc[i,"effective_lead_time"]=operations.effective_lead_time(lead_time,forecasted_df.loc[i,"full_cycles_in_lead_time"],forecasted_df.loc[i,"cycle_time"])
         forecasted_df.loc[i,"reorder_point"]=operations.reorder_point(forecasted_df.loc[i,"Store_Monthly_Demand"],forecasted_df.loc[i,"effective_lead_time"])
+        forecasted_df.loc[i,"key"] = forecasted_df.loc[i,"DC"].astype(str) + "_" + \
+                        forecasted_df.loc[i,"Year"].astype(str) + "_" + \
+                        forecasted_df.loc[i,"Month"].astype(str)
     return forecasted_df
