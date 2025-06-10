@@ -9,7 +9,19 @@ def aggregate_store_monthly(df_main, date_col='TimeWeek', value_col='Actual'):
 
     # Perform aggregation
     store_monthly = df.groupby(['Store', 'Year', 'Month'])[value_col].sum().reset_index()
+    # print(store_monthly.head())
+    # Group and apply rolling average
+    rolling_result = (
+    df
+    .groupby(['Store'])  # Rolling is usually across time per store
+    .apply(lambda g: g.sort_values(['Year', 'Month']).set_index(['Year', 'Month'])[[value_col]]
+                .rolling(window=3, min_periods=1)
+                .mean()
+                .reset_index())
+                .reset_index(drop=True))
+    df['std_demand'] = rolling_result[value_col]
     store_monthly.rename(columns={value_col: 'Store_Monthly_Demand'}, inplace=True)
+    store_monthly["std_demand"]=df["std_demand"]
 
     # Merge warehouse information back into aggregated data
     store_monthly = store_monthly.merge(store_warehouse_ref, on='Store', how='left')
