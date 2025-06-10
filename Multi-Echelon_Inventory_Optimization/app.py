@@ -1,9 +1,10 @@
 import pandas as pd
-from Input_Data import load_file_as_dataframe
-from Data_Aggregate import aggregate_store_monthly
-from Store import store_data
+from data_processing.Input_Data import load_file_as_dataframe
+from data_processing.Data_Aggregate import aggregate_store_monthly
+# from Store import store_data
+from echelon_aggregation.Store import store_data
 
-csv_path = r"C:\Users\RISHIKESH\Desktop\inventory_eda\inventory_optimization\Mult-Echelon_Inventory_Optimization\data\Sample_2.csv"
+csv_path = r"C:\Users\RISHIKESH\Desktop\inventory_eda\inventory_optimization\Multi-Echelon_Inventory_Optimization\data\Sample_2.csv"
 
 
 df = load_file_as_dataframe(csv_path, date_col="Time.[Week]")

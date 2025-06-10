@@ -1,0 +1,5 @@
+{
+    "python.analysis.extraPaths": [
+        "./Multi-Echelon_Inventory_Optimization/data_processing"
+    ]
+}
