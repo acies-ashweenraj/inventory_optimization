@@ -4,6 +4,8 @@ from data_processing.Data_Aggregate import aggregate_store_monthly, aggregate_wa
 from echelon_aggregation.Store import store_data
 from echelon_aggregation.Warehouse import warehouse_data
 from echelon_aggregation.DC import dc_data
+from distribution.dc_distribution import dc_distribution
+from distribution.warehouse_distribution import warehouse_distribution
 
 csv_path = r"C:\Users\DELL\Desktop\project-1 R&S\inventory_optimization\Multi-Echelon_Inventory_Optimization\data\Sample_2.csv"
 
@@ -26,3 +28,12 @@ warehouse_demand_df.to_excel("warehouse_demand_df.xlsx",index=False,engine='open
 dc_df.to_excel("dc_monthly_demand.xlsx", index=False, engine='openpyxl')
 dc_demand_df=dc_data(dc_df)
 dc_demand_df.to_excel("dc_demand_df.xlsx",index=False,engine='openpyxl')
+
+print(dc_demand_df.head())
+print(warehouse_demand_df.head())
+
+dc_warehouse_distribution=dc_distribution(dc_demand_df,warehouse_demand_df)
+# dc_warehouse_distribution.to_excel("dc_warehouse_distribution_df.xlsx",index=False,engine='openpyxl')
+
+# warehouse_store_distribution=warehouse_distribution(warehouse_demand_df,store_demand_df)
+# warehouse_store_distribution.to_excel("warehouse_store_distribution_df.xlsx",index=False,engine='openpyxl')

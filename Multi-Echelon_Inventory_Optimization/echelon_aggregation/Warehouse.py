@@ -27,6 +27,9 @@ def warehouse_data(df):
     
         forecasted_df.loc[i,"effective_lead_time"]=operations.effective_lead_time(lead_time,forecasted_df.loc[i,"full_cycles_in_lead_time"],forecasted_df.loc[i,"cycle_time"])
         forecasted_df.loc[i,"reorder_point"]=operations.reorder_point(forecasted_df.loc[i,"Warehouse_Monthly_Demand"],forecasted_df.loc[i,"effective_lead_time"])
+        forecasted_df["key"] = forecasted_df["DC"].astype(str) + "_" + \
+                        forecasted_df["Year"].astype(str) + "_" + \
+                        forecasted_df["Month"].astype(str)
     return forecasted_df
 
 # def store_data(df_filepath,ordering_cost,holding_cost,lead_time):
