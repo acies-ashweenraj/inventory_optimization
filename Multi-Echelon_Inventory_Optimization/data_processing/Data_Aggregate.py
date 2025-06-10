@@ -34,7 +34,18 @@ def aggregate_warehouse_monthly(df_main, date_col='TimeWeek', value_col='Actual'
     df['Year'] = df[date_col].dt.year
     df['Month'] = df[date_col].dt.month
     warehouse_monthly = df.groupby(['Warehouse', 'Year', 'Month'])[value_col].sum().reset_index()
+    rolling_result = (
+    df
+    .groupby(['Warehouse'])  # Rolling is usually across time per store
+    .apply(lambda g: g.sort_values(['Year', 'Month']).set_index(['Year', 'Month'])[[value_col]]
+                .rolling(window=3, min_periods=1)
+                .mean()
+                .reset_index())
+                .reset_index(drop=True))
+    df['std_demand'] = rolling_result[value_col]
+    warehouse_monthly["std_demand"]=df["std_demand"]    
     warehouse_monthly.rename(columns={value_col: 'Warehouse_Monthly_Demand'}, inplace=True)
+
     print(f"Warehouse-level monthly aggregation: {warehouse_monthly.shape}")
     return warehouse_monthly
 
@@ -43,6 +54,15 @@ def aggregate_dc_monthly(df_main, date_col='TimeWeek', value_col='Actual'):
     df['Year'] = df[date_col].dt.year
     df['Month'] = df[date_col].dt.month
     dc_monthly = df.groupby(['DC', 'Year', 'Month'])[value_col].sum().reset_index()
+    rolling_result = (
+    df.groupby(['DC'])  # Rolling is usually across time per store
+    .apply(lambda g: g.sort_values(['Year', 'Month']).set_index(['Year', 'Month'])[[value_col]]
+                .rolling(window=3, min_periods=1)
+                .mean()
+                .reset_index())
+                .reset_index(drop=True))
+    df['std_demand'] = rolling_result[value_col]
+    dc_monthly["std_demand"]=df["std_demand"]    
     dc_monthly.rename(columns={value_col: 'DC_Monthly_Demand'}, inplace=True)
     print(f"DC-level monthly aggregation: {dc_monthly.shape}")
     return dc_monthly
