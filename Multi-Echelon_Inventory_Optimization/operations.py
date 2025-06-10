@@ -21,12 +21,3 @@ class operations:
         return lead_time-(full_cycle_in_lead_time*cycle_time)
     def reorder_point(demand,effective_lead_time):
         return demand*effective_lead_time
-    
-    def get_ordering_cost(node):
-        return ORDERING_COST[node]
-
-    def get_holding_cost(node):
-        return HOLDING_COST[node]
-
-    def get_lead_time(parent, child):
-        return LEAD_TIME[(parent, child)]
