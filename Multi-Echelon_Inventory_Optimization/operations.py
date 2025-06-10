@@ -1,6 +1,5 @@
 # from stockpyl.eoq import economic_order_quantity
 from math import floor,sqrt
-from Preassumptions import ORDERING_COST, HOLDING_COST, LEAD_TIME
 
 class operations:
     def EOQ(ordering_cost,holding_cost,demand):
@@ -20,13 +19,7 @@ class operations:
     def effective_lead_time(lead_time,full_cycle_in_lead_time,cycle_time):
         return lead_time-(full_cycle_in_lead_time*cycle_time)
     def reorder_point(demand,effective_lead_time):
-        return demand*effective_lead_time
+        return demand*effective_lead_time   
+    def safety_stock(z_score,lead_time,std_demand):
+        return z_score*(sqrt(lead_time))*std_demand
     
-    def get_ordering_cost(node):
-        return ORDERING_COST[node]
-
-    def get_holding_cost(node):
-        return HOLDING_COST[node]
-
-    def get_lead_time(parent, child):
-        return LEAD_TIME[(parent, child)]
