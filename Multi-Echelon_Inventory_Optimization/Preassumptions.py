@@ -44,3 +44,5 @@ CODE_MAP={
 }
 
 Z_SCORE = 1.65
+
+SCHEDULE=[]

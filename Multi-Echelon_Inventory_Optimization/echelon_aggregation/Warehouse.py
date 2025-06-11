@@ -5,19 +5,12 @@ from Preassumptions import CODE_MAP,HOLDING_COST,LEAD_TIME,ORDERING_COST
 def warehouse_data(df):
     forecasted_df=df
     for i in range(len(forecasted_df)):
-        # daily_demand = forecasted_df.loc[i, 'Store_Monthly_Demand']
-        # if pd.isna(daily_demand) or daily_demand == 0:
-        #     continue  # skip this row
 
         ordering_cost = ORDERING_COST[CODE_MAP[forecasted_df.loc[i,"Warehouse"]]]
         holding_cost = HOLDING_COST[CODE_MAP[forecasted_df.loc[i,"Warehouse"]]]
         lead_time = LEAD_TIME[CODE_MAP[forecasted_df.loc[i,"Warehouse"]]]
 
-        # ordering_cost = operations.get_ordering_cost(forecasted_df.loc[i,"Store"])
-        # holding_cost = operations.get_holding_cost(forecasted_df.loc[i,"Store"])
-        # lead_time = operations.get_lead_time(forecasted_df.loc[i,"Warehouse"],forecasted_df.loc[i,"Store"])
-        
-        # forecasted_df.loc[i,"monthly_eoq"],forecasted_df.loc[i,"eoq_cost"]=operations.eoq(ordering_cost,holding_cost,forecasted_df.loc[i,"Demand Plan"])
+
         forecasted_df.loc[i,"monthly_eoq"]=operations.eoq_manual(ordering_cost,holding_cost,forecasted_df.loc[i,"Warehouse_Monthly_Demand"])
 
         forecasted_df.loc[i,'cycle_time']=operations.cycle_time(forecasted_df.loc[i,'monthly_eoq'],forecasted_df.loc[i,'Warehouse_Monthly_Demand'])
@@ -30,10 +23,7 @@ def warehouse_data(df):
 
         forecasted_df["DC"] = forecasted_df["DC"].fillna(0).astype(float).astype(int)
 
-        # forecasted_df.loc[i,"key"] = str(int(forecasted_df.loc[i,"DC"])) + "_" + \
-        #                 str(forecasted_df.loc[i,"Year"]) + "_" + \
-        #                 str(forecasted_df.loc[i,"Month"])
-        dc_val = int(forecasted_df.loc[i, "DC"])  # Remove .0
+        dc_val = int(forecasted_df.loc[i, "DC"]) 
         year_val = forecasted_df.loc[i, "Year"]
         month_val = forecasted_df.loc[i, "Month"]
         

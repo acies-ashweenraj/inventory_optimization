@@ -6,9 +6,6 @@ from Preassumptions import CODE_MAP,HOLDING_COST,LEAD_TIME,ORDERING_COST,Z_SCORE
 def dc_data(df):
     forecasted_df=df
     for i in range(len(forecasted_df)):
-        # daily_demand = forecasted_df.loc[i, 'Store_Monthly_Demand']
-        # if pd.isna(daily_demand) or daily_demand == 0:
-        #     continue  # skip this row
 
         ordering_cost = ORDERING_COST[CODE_MAP[forecasted_df.loc[i,"DC"]]]
         holding_cost = HOLDING_COST[CODE_MAP[forecasted_df.loc[i,"DC"]]]
@@ -30,4 +27,3 @@ def dc_data(df):
                         forecasted_df.loc[i,"Month"].astype(str)
     return forecasted_df
 
-# def store_data(df_filepath,ordering_cost,holding_cost,lead_time):
