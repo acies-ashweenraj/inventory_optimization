@@ -7,7 +7,8 @@ from echelon_aggregation.DC import dc_data
 from distribution.dc_distribution import dc_distribution
 from distribution.warehouse_distribution import warehouse_distribution
 from schedules import store_schedule
-from Preassumptions import SCHEDULE
+from schedules import warehouse_schedule
+from Preassumptions import STORE_SCHEDULE,WAREHOUSE_SCHEDULE
 
 csv_path = r"C:\Users\RISHIKESH\Desktop\inventory_eda\inventory_optimization\Multi-Echelon_Inventory_Optimization\data\Sample_2.csv"
 
@@ -44,7 +45,11 @@ warehouse_store_distribution.to_excel("warehouse_store_distribution_df.xlsx",ind
 
 
 store_schedule.stores_schedule(store_demand_df)
-schedule_df=pd.DataFrame(SCHEDULE)
-schedule_df.to_excel("stores_order_schedule.xlsx",index=False,engine="openpyxl")
+store_schedule_df=pd.DataFrame(STORE_SCHEDULE)
+store_schedule_df.to_excel("stores_order_schedule.xlsx",index=False,engine="openpyxl")
+
+warehouse_schedule.warehouses_schedule(warehouse_demand_df)
+warehouse_schedule_df=pd.DataFrame(WAREHOUSE_SCHEDULE)
+warehouse_schedule_df.to_excel("warehouses_order_schedule.xlsx",index=False,engine="openpyxl")
 
 
