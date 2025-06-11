@@ -1,0 +1,7 @@
+
+*.xlsx
+~$*.xlsx  # Temporary Excel files
+
+
+__pycache__/
+*.pyc

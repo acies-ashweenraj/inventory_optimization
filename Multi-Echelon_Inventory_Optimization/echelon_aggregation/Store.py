@@ -28,7 +28,12 @@ def store_data(df):
     
         forecasted_df.loc[i,"effective_lead_time"]=operations.effective_lead_time(lead_time,forecasted_df.loc[i,"full_cycles_in_lead_time"],forecasted_df.loc[i,"cycle_time"])
         forecasted_df.loc[i,"reorder_point"]=operations.reorder_point(forecasted_df.loc[i,"Store_Monthly_Demand"],forecasted_df.loc[i,"effective_lead_time"])
-        forecasted_df.loc[i,"key"] = forecasted_df.loc[i,"DC"].astype(str) + "_" + \
-                        forecasted_df.loc[i,"Year"].astype(str) + "_" + \
-                        forecasted_df.loc[i,"Month"].astype(str)
+        # forecasted_df.loc[i,"key"] = forecasted_df.loc[i,"DC"].astype(str) + "_" + \
+        #                 forecasted_df.loc[i,"Year"].astype(str) + "_" + \
+        #                 forecasted_df.loc[i,"Month"].astype(str)
+        dc_val = int(forecasted_df.loc[i, "DC"])  # Remove .0
+        year_val = forecasted_df.loc[i, "Year"]
+        month_val = forecasted_df.loc[i, "Month"]
+        
+        forecasted_df.loc[i, "key"] = f"{dc_val}_{year_val}_{month_val}"
     return forecasted_df

@@ -24,6 +24,7 @@ store_demand_df.to_excel("store_demand_df.xlsx",index=False,engine='openpyxl')
 warehouse_df.to_excel("warehouse_monthly_demand.xlsx", index=False, engine='openpyxl')
 warehouse_demand_df=warehouse_data(warehouse_df)
 warehouse_demand_df.to_excel("warehouse_demand_df.xlsx",index=False,engine='openpyxl')
+print(warehouse_demand_df.head())
 
 dc_df.to_excel("dc_monthly_demand.xlsx", index=False, engine='openpyxl')
 dc_demand_df=dc_data(dc_df)
