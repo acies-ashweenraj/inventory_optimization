@@ -32,4 +32,3 @@ def warehouse_data(df):
 
     return forecasted_df
 
-# def store_data(df_filepath,ordering_cost,holding_cost,lead_time):
