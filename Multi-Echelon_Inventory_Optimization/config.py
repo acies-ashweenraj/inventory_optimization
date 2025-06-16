@@ -1,6 +1,6 @@
 from pathlib import Path
 
-input_path = r"C:\Users\RISHIKESH\Desktop\inventory_optimization\Multi-Echelon_Inventory_Optimization\data\Sample_2.csv"
+input_path = r"C:\Users\DELL\Desktop\project-1 R&S\inventory_optimization\Multi-Echelon_Inventory_Optimization\data\Sample_2.csv"
 
 
 # Output base directory

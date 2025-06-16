@@ -25,5 +25,3 @@ warehouse_store_distribution,dc_warehouse_distribution=distribute(dc_demand_df,w
 store_schedule_df,warehouse_schedule_df=schedule(store_demand_df,warehouse_demand_df)
 
 download(store_df,warehouse_df,dc_df,store_demand_df,warehouse_demand_df,dc_demand_df,warehouse_store_distribution,dc_warehouse_distribution,store_schedule_df,warehouse_schedule_df)
-
-
