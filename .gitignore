@@ -1,6 +1,6 @@
 
-# *.xlsx
-# ~$*.xlsx  # Temporary Excel files
+*.xlsx
+~$*.xlsx  # Temporary Excel files
 
 
 __pycache__/
