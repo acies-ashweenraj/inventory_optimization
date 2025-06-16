@@ -7,8 +7,6 @@ def aggregate_store_monthly(df_main, date_col='TimeWeek', value_col='Actual'):
     store_monthly = df.groupby(['Store', 'Year', 'Month'])[value_col].sum().reset_index()
     store_warehouse_ref = df[['Store', 'Warehouse']].drop_duplicates()
 
-
-    store_monthly = df.groupby(['Store', 'Year', 'Month'])[value_col].sum().reset_index()
     rolling_result = (
     df
     .groupby(['Store'])  
@@ -34,8 +32,6 @@ def aggregate_warehouse_monthly(df_main, date_col='TimeWeek', value_col='Actual'
     df['Month'] = df[date_col].dt.month
     Warehouse_monthly = df.groupby(['Warehouse', 'Year', 'Month'])[value_col].sum().reset_index()
     Warehouse_DC_ref = df[['DC', 'Warehouse']].drop_duplicates()
-
-    Warehouse_monthly = df.groupby(['Warehouse', 'Year', 'Month'])[value_col].sum().reset_index()
 
     rolling_result = (
     df
