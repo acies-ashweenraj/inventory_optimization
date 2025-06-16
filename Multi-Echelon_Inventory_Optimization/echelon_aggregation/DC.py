@@ -11,7 +11,9 @@ def dc_data(df):
         holding_cost = HOLDING_COST[CODE_MAP[forecasted_df.loc[i,"DC"]]]
         lead_time = LEAD_TIME[CODE_MAP[forecasted_df.loc[i,"DC"]]]
 
-        forecasted_df.loc[i,"monthly_eoq"]=operations.eoq_manual(ordering_cost,holding_cost,forecasted_df.loc[i,"DC_Monthly_Demand"])
+        # forecasted_df.loc[i,"monthly_eoq"]=operations.eoq_manual(ordering_cost,holding_cost,forecasted_df.loc[i,"DC_Monthly_Demand"])
+
+        forecasted_df.loc[i,"monthly_eoq"]=operations.EOQ(ordering_cost,holding_cost,forecasted_df.loc[i,"DC_Monthly_Demand"])
 
         forecasted_df.loc[i,'cycle_time']=operations.cycle_time(forecasted_df.loc[i,'monthly_eoq'],forecasted_df.loc[i,'DC_Monthly_Demand'])
         forecasted_df.loc[i,"cycle_time_in_days"]=operations.cycle_time_month_to_days(forecasted_df.loc[i,"cycle_time"])

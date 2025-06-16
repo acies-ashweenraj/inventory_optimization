@@ -11,7 +11,8 @@ def warehouse_data(df):
         lead_time = LEAD_TIME[CODE_MAP[forecasted_df.loc[i,"Warehouse"]]]
 
 
-        forecasted_df.loc[i,"monthly_eoq"]=operations.eoq_manual(ordering_cost,holding_cost,forecasted_df.loc[i,"Warehouse_Monthly_Demand"])
+        # forecasted_df.loc[i,"monthly_eoq"]=operations.eoq_manual(ordering_cost,holding_cost,forecasted_df.loc[i,"Warehouse_Monthly_Demand"])
+        forecasted_df.loc[i,"monthly_eoq"]=operations.EOQ(ordering_cost,holding_cost,forecasted_df.loc[i,"Warehouse_Monthly_Demand"])
 
         forecasted_df.loc[i,'cycle_time']=operations.cycle_time(forecasted_df.loc[i,'monthly_eoq'],forecasted_df.loc[i,'Warehouse_Monthly_Demand'])
         forecasted_df.loc[i,"cycle_time_in_days"]=operations.cycle_time_month_to_days(forecasted_df.loc[i,"cycle_time"])

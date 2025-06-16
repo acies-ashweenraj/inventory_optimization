@@ -1,4 +1,4 @@
-# from stockpyl.eoq import economic_order_quantity
+from stockpyl.eoq import economic_order_quantity
 from math import floor,sqrt
 
 class operations:
