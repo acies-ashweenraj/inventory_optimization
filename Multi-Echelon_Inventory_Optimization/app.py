@@ -10,7 +10,7 @@ from schedules import store_schedule
 from schedules import warehouse_schedule
 from Preassumptions import STORE_SCHEDULE,WAREHOUSE_SCHEDULE
 
-csv_path = r"C:\Users\DELL\Desktop\project-1 R&S\inventory_optimization\Multi-Echelon_Inventory_Optimization\data\Sample_2.csv"
+csv_path = r"C:\Users\Mythreye\Desktop\multi-echelon\inventory_optimization\Multi-Echelon_Inventory_Optimization\data\Sample_2.csv"
 
 
 df = load_file_as_dataframe(csv_path, date_col="Time.[Week]")
