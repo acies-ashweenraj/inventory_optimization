@@ -6,9 +6,6 @@ from Preassumptions import CODE_MAP,HOLDING_COST,LEAD_TIME,ORDERING_COST,Z_SCORE
 def dc_data(df):
     forecasted_df=df
     for i in range(len(forecasted_df)):
-        # daily_demand = forecasted_df.loc[i, 'Store_Monthly_Demand']
-        # if pd.isna(daily_demand) or daily_demand == 0:
-        #     continue  # skip this row
 
         ordering_cost = ORDERING_COST[CODE_MAP[forecasted_df.loc[i,"DC"]]]
         holding_cost = HOLDING_COST[CODE_MAP[forecasted_df.loc[i,"DC"]]]
@@ -25,9 +22,8 @@ def dc_data(df):
         forecasted_df.loc[i,"reorder_point"]=operations.reorder_point(forecasted_df.loc[i,"DC_Monthly_Demand"],forecasted_df.loc[i,"effective_lead_time"])
         forecasted_df.loc[i,"safety_stock"] = operations.safety_stock(Z_SCORE,lead_time,forecasted_df.loc[i,"std_demand"])
         forecasted_df.loc[i,"total_stock"] = forecasted_df.loc[i,"safety_stock"] + forecasted_df.loc[i,"DC_Monthly_Demand"]
-        forecasted_df["key"] = forecasted_df["DC"].astype(str) + "_" + \
-                        forecasted_df["Year"].astype(str) + "_" + \
-                        forecasted_df["Month"].astype(str)
+        forecasted_df.loc[i,"key"] = forecasted_df.loc[i,"DC"].astype(str) + "_" + \
+                        forecasted_df.loc[i,"Year"].astype(str) + "_" + \
+                        forecasted_df.loc[i,"Month"].astype(str)
     return forecasted_df
 
-# def store_data(df_filepath,ordering_cost,holding_cost,lead_time):
