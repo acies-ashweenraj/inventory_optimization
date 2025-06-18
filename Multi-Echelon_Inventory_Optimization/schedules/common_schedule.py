@@ -1,5 +1,5 @@
 import pandas as pd
-from math import floor
+from math import floor,ceil
 from datetime import datetime, timedelta
 from Preassumptions import STORE_SCHEDULE, WAREHOUSE_SCHEDULE
 
@@ -45,7 +45,7 @@ def common_schedule_func(df, echelon_type):
                 "Year": year,
                 "Month": month,
                 "Date_Time": order_dates[j],
-                "Quantity": eoq
+                "Quantity": ceil(eoq)
             }
             output.append(order)
 
@@ -57,6 +57,6 @@ def common_schedule_func(df, echelon_type):
                 "Year": year,
                 "Month": month,
                 "Date_Time": balance_order_date,
-                "Quantity": balance_demand
+                "Quantity": ceil(balance_demand)
             }
             output.append(order)
