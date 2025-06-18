@@ -1,16 +1,7 @@
-import pandas as pd
 from data_processing.Input_Data import load_file_as_dataframe
-from data_processing.Data_Aggregate import aggregate_store_monthly, aggregate_warehouse_monthly, aggregate_dc_monthly
-from echelon_aggregation.Store import store_data
-from echelon_aggregation.Warehouse import warehouse_data
-from echelon_aggregation.DC import dc_data
-from distribution.dc_distribution import dc_distribution
-from distribution.warehouse_distribution import warehouse_distribution
-from schedules import store_schedule
-from schedules import warehouse_schedule
-from Preassumptions import STORE_SCHEDULE,WAREHOUSE_SCHEDULE
-from config import input_path,monthly_demand_path,calculated_metrics_path,distribution_path,schedule_path
+from config import input_path
 from app_function_call import aggregate,calculate_metrics,distribute,schedule,download
+from cost_comparison import eoq_cost,non_eoq_cost
 
 
 
@@ -24,4 +15,11 @@ warehouse_store_distribution,dc_warehouse_distribution=distribute(dc_demand_df,w
 
 store_schedule_df,warehouse_schedule_df=schedule(store_demand_df,warehouse_demand_df)
 
-download(store_df,warehouse_df,dc_df,store_demand_df,warehouse_demand_df,dc_demand_df,warehouse_store_distribution,dc_warehouse_distribution,store_schedule_df,warehouse_schedule_df)
+
+eoq_cost_df = eoq_cost.eoq_cost_function(store_schedule_df,store_demand_df)
+non_eoq_cost_df = non_eoq_cost.non_eoq_cost_function(warehouse_store_distribution)
+
+
+download(store_df,warehouse_df,dc_df,store_demand_df,warehouse_demand_df,dc_demand_df,warehouse_store_distribution,dc_warehouse_distribution,store_schedule_df,warehouse_schedule_df,eoq_cost_df,non_eoq_cost_df)
+
+
