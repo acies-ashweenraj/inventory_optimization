@@ -29,11 +29,11 @@ def eoq_cost_function(df, cyc_df):
         total_cost = ordering_cost + (quantity / 2) * ((holding_cost * cycle_time) / 30)
         total_costs.append(total_cost)
 
-    merged_df["total_cost"] = total_costs
+    merged_df["total_cost_eoq"] = total_costs
 
     monthly_total_cost_df = merged_df.groupby(
         ["From", "Echelon", "Year", "Month"]
-    )["total_cost"].sum().reset_index()
+    )["total_cost_eoq"].sum().reset_index()
 
     return monthly_total_cost_df
 
