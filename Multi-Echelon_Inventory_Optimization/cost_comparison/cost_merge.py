@@ -8,5 +8,4 @@ def cost_merge_function(eoq_df,non_eoq_df):
         on=["Echelon", "Year", "Month"],
         how="left"
     )
-        print(merged_df.head())
         return merged_df

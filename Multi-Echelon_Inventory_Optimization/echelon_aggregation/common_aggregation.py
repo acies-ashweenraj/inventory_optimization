@@ -3,13 +3,15 @@ from operations import operations
 from Preassumptions import CODE_MAP,HOLDING_COST,LEAD_TIME,ORDERING_COST,Z_SCORE
 
 def aggreagation_func(df,echelon):
-    echelon_df=df
-    if echelon=="Store":
-        Monthly_demand="Store_Monthly_Demand"
-    elif echelon=="Warehouse":
+    echelon_df=df.copy()
+    if echelon.lower()=="store":
+        Monthly_demand="Store_Monthly_Demand"       # Need to check, whether we should also change this monthly demand column
+    elif echelon.lower()=="warehouse":
         Monthly_demand="Warehouse_Monthly_Demand"
-    else:
+    elif echelon.lower()=="dc":
         Monthly_demand="DC_Monthly_Demand"
+    else:
+        raise "Wrong echelon input"
 
     for i in range(len(echelon_df)):
 
