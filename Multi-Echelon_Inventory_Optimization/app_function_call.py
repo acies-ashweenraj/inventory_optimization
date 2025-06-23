@@ -15,9 +15,9 @@ from config import input_path,monthly_demand_path,calculated_metrics_path,distri
 
 
 def aggregate(df):
-    store_df = aggregate_store_monthly(df, date_col='TimeWeek', value_col='Actual')
-    warehouse_df = aggregate_warehouse_monthly(df, date_col='TimeWeek', value_col='Actual')
-    dc_df = aggregate_dc_monthly(df, date_col='TimeWeek', value_col='Actual')
+    store_df = aggregate_store_monthly(df, date_col='TimeWeek', value_col='Actual',sku_col="ItemStat_Item")
+    warehouse_df = aggregate_warehouse_monthly(df, date_col='TimeWeek', value_col='Actual',sku_col="ItemStat_Item")
+    dc_df = aggregate_dc_monthly(df, date_col='TimeWeek', value_col='Actual',sku_col="ItemStat_Item")
 
     return store_df,warehouse_df,dc_df
 

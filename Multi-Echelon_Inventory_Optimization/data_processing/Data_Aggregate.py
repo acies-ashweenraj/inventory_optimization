@@ -1,10 +1,10 @@
 import pandas as pd
 
-def aggregate_store_monthly(df_main, date_col='TimeWeek', value_col='Actual'):
+def aggregate_store_monthly(df_main, date_col='TimeWeek', value_col='Actual',sku_col="ItemStat_Item"):
     df = df_main.copy()
     df['Year'] = df[date_col].dt.year
     df['Month'] = df[date_col].dt.month
-    store_monthly = df.groupby(['Store', 'Year', 'Month'])[value_col].sum().reset_index()
+    store_monthly = df.groupby(['Store', 'Year', 'Month','ItemStat_Item'])[value_col].sum().reset_index()
     store_warehouse_ref = df[['Store', 'Warehouse']].drop_duplicates()
 
     rolling_result = (
@@ -26,11 +26,11 @@ def aggregate_store_monthly(df_main, date_col='TimeWeek', value_col='Actual'):
     return store_monthly
 
 
-def aggregate_warehouse_monthly(df_main, date_col='TimeWeek', value_col='Actual'):
+def aggregate_warehouse_monthly(df_main, date_col='TimeWeek', value_col='Actual',sku_col="ItemStat_Item"):
     df = df_main.copy()
     df['Year'] = df[date_col].dt.year
     df['Month'] = df[date_col].dt.month
-    Warehouse_monthly = df.groupby(['Warehouse', 'Year', 'Month'])[value_col].sum().reset_index()
+    Warehouse_monthly = df.groupby(['Warehouse', 'Year', 'Month','ItemStat_Item'])[value_col].sum().reset_index()
     Warehouse_DC_ref = df[['DC', 'Warehouse']].drop_duplicates()
 
     rolling_result = (
@@ -51,11 +51,11 @@ def aggregate_warehouse_monthly(df_main, date_col='TimeWeek', value_col='Actual'
     return Warehouse_monthly
 
 
-def aggregate_dc_monthly(df_main, date_col='TimeWeek', value_col='Actual'):
+def aggregate_dc_monthly(df_main, date_col='TimeWeek', value_col='Actual',sku_col="ItemStat_Item"):
     df = df_main.copy()
     df['Year'] = df[date_col].dt.year
     df['Month'] = df[date_col].dt.month
-    dc_monthly = df.groupby(['DC', 'Year', 'Month'])[value_col].sum().reset_index()
+    dc_monthly = df.groupby(['DC', 'Year', 'Month','ItemStat_Item'])[value_col].sum().reset_index()
     rolling_result = (
     df.groupby(['DC'])  
     .apply(lambda g: g.sort_values(['Year', 'Month']).set_index(['Year', 'Month'])[[value_col]]
