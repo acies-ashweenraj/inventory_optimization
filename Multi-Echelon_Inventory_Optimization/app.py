@@ -7,6 +7,7 @@ from cost_comparison import eoq_cost,non_eoq_cost
 
 df = load_file_as_dataframe(input_path, date_col="Time.[Week]")
 
+
 store_df,warehouse_df,dc_df=aggregate(df)
 
 store_demand_df,warehouse_demand_df,dc_demand_df=calculate_metrics(store_df,warehouse_df,dc_df)

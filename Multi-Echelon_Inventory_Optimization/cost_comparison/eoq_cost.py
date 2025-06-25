@@ -1,6 +1,8 @@
 import pandas as pd
 from schedules import store_schedule
-from Preassumptions import HOLDING_COST, ORDERING_COST, CODE_MAP
+# from Preassumptions import HOLDING_COST, ORDERING_COST, CODE_MAP
+from Preassumptions import HOLDING_COST, ORDERING_COST
+
 from echelon_aggregation import Store
 
 def eoq_cost_function(df, cyc_df):
@@ -20,7 +22,7 @@ def eoq_cost_function(df, cyc_df):
     total_costs = []
     for i, row in merged_df.iterrows():
         echelon_code = row["Echelon"]
-        echelon_name = CODE_MAP[echelon_code]
+        echelon_name = echelon_code
         holding_cost = HOLDING_COST[echelon_name]
         ordering_cost = ORDERING_COST[echelon_name]
         quantity = row["Quantity"]

@@ -1,4 +1,5 @@
-from Preassumptions import HOLDING_COST, ORDERING_COST, CODE_MAP
+# from Preassumptions import HOLDING_COST, ORDERING_COST, CODE_MAP
+from Preassumptions import HOLDING_COST, ORDERING_COST
 import pandas as pd
 
 def non_eoq_cost_function(df):
@@ -11,7 +12,7 @@ def non_eoq_cost_function(df):
 
     for i in range(len(cost_df)):
         echelon_code = cost_df.loc[i, "Echelon"]
-        echelon_name = CODE_MAP[echelon_code]
+        echelon_name = echelon_code
 
         holding_cost = HOLDING_COST[echelon_name]
         ordering_cost = ORDERING_COST[echelon_name]

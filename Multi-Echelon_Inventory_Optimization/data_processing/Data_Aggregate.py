@@ -5,7 +5,7 @@ def aggregate_store_monthly(df_main, date_col='TimeWeek', value_col='Actual',sku
     df['Year'] = df[date_col].dt.year
     df['Month'] = df[date_col].dt.month
     store_monthly = df.groupby(['Store', 'Year', 'Month','ItemStat_Item'])[value_col].sum().reset_index()
-    store_warehouse_ref = df[['Store', 'Warehouse']].drop_duplicates()
+    store_warehouse_ref = df[['Store', 'Warehouse','DC']].drop_duplicates()
 
     rolling_result = (
     df

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-input_path = r"C:\Users\RISHIKESH\Desktop\inventory_optimization\Multi-Echelon_Inventory_Optimization\data\Multi_Sku.xlsx"
+input_path = r"Multi-Echelon_Inventory_Optimization\data\Multi_Sku.xlsx"
 
 
 base_output_dir = Path("./Multi-Echelon_Inventory_Optimization/output_data")

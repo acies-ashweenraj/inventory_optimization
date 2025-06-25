@@ -13,7 +13,6 @@ from Preassumptions import STORE_SCHEDULE,WAREHOUSE_SCHEDULE
 from config import input_path,monthly_demand_path,calculated_metrics_path,distribution_path,schedule_path,cost_path
 
 
-
 def aggregate(df):
     store_df = aggregate_store_monthly(df, date_col='TimeWeek', value_col='Actual',sku_col="ItemStat_Item")
     warehouse_df = aggregate_warehouse_monthly(df, date_col='TimeWeek', value_col='Actual',sku_col="ItemStat_Item")

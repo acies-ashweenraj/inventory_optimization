@@ -1,6 +1,8 @@
 import pandas as pd
 from operations import operations
-from Preassumptions import CODE_MAP,HOLDING_COST,LEAD_TIME,ORDERING_COST,Z_SCORE
+# from Preassumptions import CODE_MAP,HOLDING_COST,ORDERING_COST,Z_SCORE,LEAD_TIME1
+from Preassumptions import HOLDING_COST,ORDERING_COST,Z_SCORE,LEAD_TIME1
+
 
 def aggreagation_func(df,echelon):
     echelon_df=df.copy()
@@ -12,16 +14,30 @@ def aggreagation_func(df,echelon):
         Monthly_demand="DC_Monthly_Demand"
     else:
         raise "Wrong echelon input"
-
+    
     for i in range(len(echelon_df)):
 
-        ordering_cost = ORDERING_COST[CODE_MAP[echelon_df.loc[i,echelon]]]
-        holding_cost = HOLDING_COST[CODE_MAP[echelon_df.loc[i,echelon]]]
-        lead_time = LEAD_TIME[CODE_MAP[echelon_df.loc[i,echelon]]]
+        ordering_cost = ORDERING_COST[echelon_df.loc[i,echelon]]
+        holding_cost = HOLDING_COST[echelon_df.loc[i,echelon]]
         
-        if echelon=="Store":
-            key = next((k for k, v in CODE_MAP.items() if v == "DC"), None)
-            echelon_df.loc[i,"DC"]=key
+        if echelon.lower()=="store":
+            wh_node = echelon_df.loc[i, "Warehouse"]
+            to_node = echelon_df.loc[i, "Store"]
+            lead_time = LEAD_TIME1[(wh_node, to_node)]
+
+
+        elif echelon.lower() == "warehouse":
+            dc_node = echelon_df.loc[i, "DC"]
+            to_node = echelon_df.loc[i, "Warehouse"]
+            lead_time = LEAD_TIME1.get((dc_node, to_node), 0)
+
+        elif echelon.lower() == "dc":
+            to_node = echelon_df.loc[i, "DC"]
+            lead_time = LEAD_TIME1.get(to_node, 0)
+
+        else:
+            raise ValueError("Invalid echelon input")
+
         
         # echelon_df.loc[i,"monthly_eoq"]=operations.eoq_manual(ordering_cost,holding_cost,echelon_df.loc[i,"Store_Monthly_Demand"])
         echelon_df.loc[i,"monthly_eoq"]=operations.EOQ(ordering_cost,holding_cost,echelon_df.loc[i,f"{Monthly_demand}"])
@@ -37,9 +53,10 @@ def aggreagation_func(df,echelon):
             echelon_df.loc[i,"safety_stock"] = operations.safety_stock(Z_SCORE,lead_time,echelon_df.loc[i,"std_demand"])
             echelon_df.loc[i,"total_stock"] = echelon_df.loc[i,"safety_stock"] + echelon_df.loc[i,"DC_Monthly_Demand"]
 
-        dc_val = int(echelon_df.loc[i, "DC"]) 
+        dc_val = echelon_df.loc[i, "DC"]
         year_val = echelon_df.loc[i, "Year"]
         month_val = echelon_df.loc[i, "Month"]
         
         echelon_df.loc[i, "key"] = f"{dc_val}_{year_val}_{month_val}"
+
     return echelon_df
