@@ -1,7 +1,7 @@
 import re
 
 
-def data_processing(df,style='camel'):
+def data_processing(df,style='snake'):
     
     def clean_name(col):
         # Remove special characters
