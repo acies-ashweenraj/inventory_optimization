@@ -29,13 +29,12 @@ def network_builder_func():
 
     nodes, edges = build_network(network_df,cost_df,lead_df,demand_df)
 
-    # 👇 Here is where your network dictionary should be created
     network = {
         "nodes": nodes,  # Dictionary: {node_code: Node}
         "edges": edges   # List: [Edge, Edge, ...]
     }
 
-    # print(f"✅ Network created with {len(network['nodes'])} nodes and {len(network['edges'])} edges")
+    # print(f"Network created with {len(network['nodes'])} nodes and {len(network['edges'])} edges")
 
     # # Sample usage
     # for node_code, node_obj in network["nodes"].items():

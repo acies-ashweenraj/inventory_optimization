@@ -6,30 +6,26 @@ def build_network(network_df, cost_df, lead_df, forecasted_df):
     nodes = {}
     edges = []
 
-    # Convert week to datetime
     forecasted_df['week'] = pd.to_datetime(forecasted_df['week'])
 
-    # Normalize keys to match
     forecasted_df['node'] = forecasted_df['node'].astype(str).str.strip().str.upper()
     forecasted_df['sku'] = forecasted_df['sku'].astype(str).str.strip().str.upper()
     network_df['node_name'] = network_df['node_name'].astype(str).str.strip().str.upper()
     cost_df['node'] = cost_df['node'].astype(str).str.strip().str.upper()
     cost_df['sku'] = cost_df['sku'].astype(str).str.strip().str.upper()
 
-    # Debug prints to inspect matching
-    print("🔍 Unique node values in forecasted_df:", forecasted_df['node'].unique())
-    print("🔍 Unique node names in network_df:", network_df['node_name'].unique())
+    print("Unique node values in forecasted_df:", forecasted_df['node'].unique())
+    print("Unique node names in network_df:", network_df['node_name'].unique())
 
-    # Loop over each node
     for _, row in network_df.iterrows():
         node_code = row["node_code"]
         node_name = row["node_name"]
         node_type = row["node_type"]
         capacity = row["capacity"]
 
-        print(f"🔁 Checking node: {node_name}")
+        print(f"Checking node: {node_name}")
         relevant_demand = forecasted_df[forecasted_df["node"] == node_name]
-        print(f"   ✅ Demand rows found: {len(relevant_demand)}")
+        print(f"Demand rows found: {len(relevant_demand)}")
 
         sku_list = relevant_demand["sku"].unique().tolist()
 
