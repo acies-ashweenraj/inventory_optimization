@@ -1,6 +1,6 @@
 from pathlib import Path
 
-input_path = r"Graph_MEIO\data\Graph_Data.xlsx"
+input_path = r"data\Graph_Data.xlsx"
 
 
 base_output_dir = Path("./Graph_MEIO/output_data")
