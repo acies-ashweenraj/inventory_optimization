@@ -54,14 +54,24 @@ if st.button("Use Sample Data"):
     st.success("Sample data selected.")
 
 if st.session_state.use_sample:
-    uploaded_orders = sample_order_path
-    uploaded_stock = sample_stock_path
+    if os.path.exists(sample_order_path) and os.path.exists(sample_stock_path):
+        uploaded_orders = sample_order_path
+        uploaded_stock = sample_stock_path
+    else:
+        st.warning("Sample data files not found. Please upload your own files.")
+        uploaded_orders = None
+        uploaded_stock = None
+        st.session_state.use_sample = False # Reset if samples are not found
 
 
 if uploaded_orders and uploaded_stock:
     try:
-        df_orders = pd.read_excel(uploaded_orders)
-        df_stock = pd.read_excel(uploaded_stock)
+        if st.session_state.use_sample: # For sample data, read directly
+            df_orders = pd.read_excel(uploaded_orders)
+            df_stock = pd.read_excel(uploaded_stock)
+        else: # For user uploaded files, uploaded_orders and uploaded_stock are file-like objects
+            df_orders = pd.read_excel(uploaded_orders)
+            df_stock = pd.read_excel(uploaded_stock)
 
         order_mappings = {
             k: auto_map(df_orders.columns.tolist(), v) or ""
@@ -83,19 +93,29 @@ if uploaded_orders and uploaded_stock:
         st.subheader("Edit Mappings (Optional)")
         with st.expander("Edit Orders Column Mapping"):
             for k in expected_orders_cols:
+                current_map = order_mappings[k]
+                try:
+                    default_index = df_orders.columns.get_loc(current_map) if current_map in df_orders.columns else 0
+                except KeyError:
+                    default_index = 0 # Fallback if column not found
                 order_mappings[k] = st.selectbox(
                     f"Map for: {k}",
                     df_orders.columns,
-                    index=df_orders.columns.get_loc(order_mappings[k]) if order_mappings[k] in df_orders.columns else 0,
+                    index=default_index,
                     key=f"order_{k}"
                 )
 
         with st.expander("Edit Inventory Column Mapping"):
             for k in expected_stock_cols:
+                current_map = stock_mappings[k]
+                try:
+                    default_index = df_stock.columns.get_loc(current_map) if current_map in df_stock.columns else 0
+                except KeyError:
+                    default_index = 0 # Fallback if column not found
                 stock_mappings[k] = st.selectbox(
                     f"Map for: {k}",
                     df_stock.columns,
-                    index=df_stock.columns.get_loc(stock_mappings[k]) if stock_mappings[k] in df_stock.columns else 0,
+                    index=default_index,
                     key=f"stock_{k}"
                 )
 
@@ -164,3 +184,39 @@ if uploaded_orders and uploaded_stock:
 
     except Exception as e:
         st.error(f"Error reading uploaded files: {e}")
+
+
+# --- Step 2: Upload MEIO Data ---
+st.subheader("Step 2: Upload MEIO Data")
+
+uploaded_meio_file1 = st.file_uploader("Upload Demand Forecasted Data", type=["xlsx"], key="demand_forecast")
+uploaded_meio_file2 = st.file_uploader("Upload Lead Time Data", type=["xlsx"], key="lead_time")
+uploaded_meio_file3 = st.file_uploader("Upload Node Data", type=["xlsx"], key="node_data")
+
+meio_dataframes = {}
+
+if uploaded_meio_file1:
+    try:
+        meio_dataframes["demand_forecast"] = pd.read_excel(uploaded_meio_file1)
+    except Exception as e:
+        st.error(f"Error reading demand_forecast file: {e}")
+
+if uploaded_meio_file2:
+    try:
+        meio_dataframes["lead_time"] = pd.read_excel(uploaded_meio_file2)
+    except Exception as e:
+        st.error(f"Error reading Lead Time: {e}")
+
+if uploaded_meio_file3:
+    try:
+        meio_dataframes["node_data"] = pd.read_excel(uploaded_meio_file3)
+    except Exception as e:
+        st.error(f"Error reading Node Data: {e}")
+
+if meio_dataframes:
+    st.subheader("MEIO Data Preview")
+    selected_meio_file = st.selectbox("Select MEIO File to View", list(meio_dataframes.keys()))
+    if selected_meio_file:
+        st.dataframe(meio_dataframes[selected_meio_file], use_container_width=True)
+else:
+    st.info("Upload MEIO files to view their content.")
