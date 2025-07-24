@@ -16,7 +16,6 @@ def aggreagation_func(df,echelon):
         raise "Wrong echelon input"
     
     for i in range(len(echelon_df)):
-
         ordering_cost = ORDERING_COST[echelon_df.loc[i,echelon]]
         holding_cost = HOLDING_COST[echelon_df.loc[i,echelon]]
         

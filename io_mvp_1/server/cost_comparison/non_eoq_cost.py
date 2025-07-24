@@ -1,5 +1,5 @@
 # from Preassumptions import HOLDING_COST, ORDERING_COST, CODE_MAP
-from Preassumptions import HOLDING_COST, ORDERING_COST
+from server.Preassumptions import HOLDING_COST, ORDERING_COST
 import pandas as pd
 
 def non_eoq_cost_function(df):

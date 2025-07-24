@@ -1,17 +1,28 @@
 import pandas as pd
-from data_processing.Input_Data import load_file_as_dataframe
-from data_processing.Data_Aggregate import aggregate_store_monthly, aggregate_warehouse_monthly, aggregate_dc_monthly
-from echelon_aggregation.Store import store_data
-from echelon_aggregation.Warehouse import warehouse_data
-from echelon_aggregation.DC import dc_data
-from distribution.dc_distribution import dc_distribution
-from distribution.warehouse_distribution import warehouse_distribution
-from schedules import store_schedule
-from schedules import warehouse_schedule
-from cost_comparison import cost_merge,eoq_cost,non_eoq_cost
-from Preassumptions import STORE_SCHEDULE,WAREHOUSE_SCHEDULE
-from config import input_path,monthly_demand_path,calculated_metrics_path,distribution_path,schedule_path,cost_path
+from server.data_processing.Data_Aggregate import aggregate_store_monthly, aggregate_warehouse_monthly, aggregate_dc_monthly
+from server.echelon_aggregation.Store import store_data
+from server.echelon_aggregation.Warehouse import warehouse_data
+from server.echelon_aggregation.DC import dc_data
+from server.distribution.dc_distribution import dc_distribution
+from server.distribution.warehouse_distribution import warehouse_distribution
+from server.schedules import store_schedule
+from server.schedules import warehouse_schedule
+from server.cost_comparison import cost_merge,eoq_cost,non_eoq_cost
+from server.Preassumptions import STORE_SCHEDULE,WAREHOUSE_SCHEDULE
+from server.config import input_path,monthly_demand_path,calculated_metrics_path,distribution_path,schedule_path,cost_path
+import pickle, os
 
+# SHARED_DIR = os.path.join("shared_data")
+
+# def run_meio():
+#     with open(os.path.join(SHARED_DIR, "demand_forecast.pkl"), "rb") as f:
+#         df_demand = pickle.load(f)
+
+#     with open(os.path.join(SHARED_DIR, "lead_time.pkl"), "rb") as f:
+#         df_lead = pickle.load(f)
+
+#     with open(os.path.join(SHARED_DIR, "node_data.pkl"), "rb") as f:
+#         df_nodes = pickle.load(f)
 
 def aggregate(df):
     store_df = aggregate_store_monthly(df, date_col='TimeWeek', value_col='Actual',sku_col="ItemStat_Item")

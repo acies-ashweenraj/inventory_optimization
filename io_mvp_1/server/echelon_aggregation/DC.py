@@ -1,6 +1,6 @@
 import pandas as pd
-from operations import operations
-from echelon_aggregation import common_aggregation
+from server.operations import operations
+from server.echelon_aggregation import common_aggregation
 
 
 def dc_data(df):

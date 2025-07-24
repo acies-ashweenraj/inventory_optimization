@@ -1,5 +1,5 @@
 import pandas as pd
-from operations import operations
+from server.operations import operations
 
 
 def warehouse_distribution(warehouse_df,store_df):

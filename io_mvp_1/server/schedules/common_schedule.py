@@ -1,7 +1,7 @@
 import pandas as pd
 from math import floor,ceil
 from datetime import datetime, timedelta
-from Preassumptions import STORE_SCHEDULE, WAREHOUSE_SCHEDULE
+from server.Preassumptions import STORE_SCHEDULE, WAREHOUSE_SCHEDULE
 
 def common_schedule_func(df, echelon_type):
     if echelon_type.lower() == "warehouse":

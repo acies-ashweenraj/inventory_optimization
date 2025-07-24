@@ -1,8 +1,8 @@
 import pandas as pd
 from math import floor
 from datetime import datetime, timedelta
-from Preassumptions import WAREHOUSE_SCHEDULE  
-from schedules import common_schedule
+from server.Preassumptions import WAREHOUSE_SCHEDULE  
+from server.schedules import common_schedule
 
 
 def warehouses_schedule(df):

@@ -1,7 +1,7 @@
 import pandas as pd
-from operations import operations
+from server.operations import operations
 # from Preassumptions import CODE_MAP,HOLDING_COST,ORDERING_COST,Z_SCORE,LEAD_TIME1
-from Preassumptions import HOLDING_COST,ORDERING_COST,Z_SCORE,LEAD_TIME1
+from server.Preassumptions import HOLDING_COST,ORDERING_COST,Z_SCORE,LEAD_TIME1
 
 
 def aggreagation_func(df,echelon):

@@ -1,8 +1,13 @@
 
 import pandas as pd
+from server.data_processing.Input_Data import load_pickle_as_dataframe
 
-cost_df = pd.read_excel(r"io_mvp_1\server\data\Node_Costs.xlsx")
-lead_time_df = pd.read_excel(r"io_mvp_1\server\data\Leadtime_MultiSKU.xlsx")     # Source Code, Target Code, Lead Time
+
+cost_df =  load_pickle_as_dataframe("C:/Users/Saambavi/Desktop/inventory model/io_mvp_1/shared_data/node_data.pkl")
+
+lead_time_df  = load_pickle_as_dataframe("C:/Users/Saambavi/Desktop/inventory model/io_mvp_1/shared_data/lead_time.pkl")
+
+     # Source Code, Target Code, Lead Time
 
 
 ORDERING_COST = {}
@@ -15,7 +20,7 @@ for _, row in cost_df.iterrows():
         key = f'Warehouse_{node_code}'
     elif node_type == 'Store':
         key = f'Store_{node_code}'
-    ORDERING_COST[key] = row['Ordering Cost']
+    ORDERING_COST[key] = row['Ordering_Cost']
 
 HOLDING_COST = {}
 for _, row in cost_df.iterrows():
@@ -27,16 +32,16 @@ for _, row in cost_df.iterrows():
         key = f'Warehouse_{node_code}'
     elif node_type == 'Store':
         key = f'Store_{node_code}'
-    HOLDING_COST[key] = row['Holding Cost']
+    HOLDING_COST[key] = row['Holding_Cost']
 
 LEAD_TIME1 = {}
 for _, row in lead_time_df.iterrows():
-    from_code = row['Source Code'].split('_')
-    to_code = row['Target Code'].split('_')
+    from_code = row['Source_Code'].split('_')
+    to_code = row['Target_Code'].split('_')
 
     from_key = f"{from_code[0]}_{from_code[1]}"
     to_key = f"{to_code[0]}_{to_code[1]}"
-    LEAD_TIME1[(from_key, to_key)] = row['Lead Time']
+    LEAD_TIME1[(from_key, to_key)] = row['Lead_Time']
 
 
 

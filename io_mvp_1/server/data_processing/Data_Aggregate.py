@@ -21,7 +21,6 @@ def aggregate_store_monthly(df_main, date_col='TimeWeek', value_col='Actual',sku
 
     store_monthly = store_monthly.merge(store_warehouse_ref, on='Store', how='left')
 
-
     print(f"Store-level monthly aggregation: {store_monthly.shape}")
     return store_monthly
 
