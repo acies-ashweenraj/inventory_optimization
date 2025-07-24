@@ -1,8 +1,8 @@
 
 import pandas as pd
 
-cost_df = pd.read_excel(r"Multi-Echelon_Inventory_Optimization\data\Node_Costs.xlsx")
-lead_time_df = pd.read_excel(r"Multi-Echelon_Inventory_Optimization\data\Leadtime_MultiSKU.xlsx")     # Source Code, Target Code, Lead Time
+cost_df = pd.read_excel(r"io_mvp_1\server\data\Node_Costs.xlsx")
+lead_time_df = pd.read_excel(r"io_mvp_1\server\data\Leadtime_MultiSKU.xlsx")     # Source Code, Target Code, Lead Time
 
 
 ORDERING_COST = {}

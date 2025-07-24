@@ -1,9 +1,9 @@
 from pathlib import Path
 
-input_path = r"Multi-Echelon_Inventory_Optimization\data\Multi_Sku.xlsx"
+input_path = r"io_mvp_1\server\data\Multi_Sku.xlsx"
 
 
-base_output_dir = Path("./Multi-Echelon_Inventory_Optimization/output_data")
+base_output_dir = Path("./io_mvp_1/server/output_data")
 
 monthly_demand_path = base_output_dir/"monthly_demand"
 calculated_metrics_path = base_output_dir/"calculated_metrics"
