@@ -1,12 +1,14 @@
 
 import pandas as pd
-from server.data_processing.Input_Data import load_pickle_as_dataframe
+# from server.data_processing.Input_Data import load_pickle_as_dataframe
+from server.data_processing.Input_Data import load_file_as_dataframe
+
 from .config import cost_path,lead_path
 
 
-cost_df =  load_pickle_as_dataframe(cost_path)
+cost_df =  load_file_as_dataframe(cost_path)
 
-lead_time_df  = load_pickle_as_dataframe(lead_path)
+lead_time_df  = load_file_as_dataframe(lead_path)
 
      # Source Code, Target Code, Lead Time
 

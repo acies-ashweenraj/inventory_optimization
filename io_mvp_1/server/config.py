@@ -1,9 +1,9 @@
 from pathlib import Path
 
 input_path = r"\data\Multi_Sku.xlsx"
-demand_path = r"C:\Users\DELL\Desktop\meio\inventory_optimization\io_mvp_1\server\data\Multi_Sku (3).xlsx"
-lead_path = r"C:\Users\DELL\Desktop\meio\inventory_optimization\io_mvp_1\server\data\Leadtime_MultiSKU (1).xlsx"
-cost_path = r"C:\Users\DELL\Desktop\meio\inventory_optimization\io_mvp_1\server\data\Node_Costs (1).xlsx"
+demand_path = r"C:\Users\DELL\Desktop\meio\inventory_optimization\io_mvp_1\server\data\Multi_Sku.xlsx"
+lead_path = r"C:\Users\DELL\Desktop\meio\inventory_optimization\io_mvp_1\server\data\Leadtime_MultiSKU.xlsx"
+cost_path = r"C:\Users\DELL\Desktop\meio\inventory_optimization\io_mvp_1\server\data\Node_Costs.xlsx"
 
 
 base_output_dir = Path(".//output_data")
