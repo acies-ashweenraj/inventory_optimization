@@ -17,13 +17,18 @@ def aggreagation_func(df,echelon):
     
     for i in range(len(echelon_df)):
 
-        ordering_cost = ORDERING_COST[echelon_df.loc[i,echelon]]
-        holding_cost = HOLDING_COST[echelon_df.loc[i,echelon]]
+        # ordering_cost = ORDERING_COST[echelon_df.loc[i,echelon]]
+        ordering_cost = ORDERING_COST.get(echelon_df.loc[i, echelon], 0.1)
+        holding_cost = HOLDING_COST.get(echelon_df.loc[i, echelon], 1)
+
+        # holding_cost = HOLDING_COST[echelon_df.loc[i,echelon]]
         
         if echelon.lower()=="store":
             wh_node = echelon_df.loc[i, "Warehouse"]
             to_node = echelon_df.loc[i, "Store"]
-            lead_time = LEAD_TIME1[(wh_node, to_node)]
+            # lead_time = LEAD_TIME1[(wh_node, to_node)]
+            lead_time = LEAD_TIME1.get((wh_node, to_node), 10)
+
 
 
         elif echelon.lower() == "warehouse":

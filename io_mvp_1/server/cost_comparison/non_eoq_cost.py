@@ -14,8 +14,10 @@ def non_eoq_cost_function(df):
         echelon_code = cost_df.loc[i, "Echelon"]
         echelon_name = echelon_code
 
-        holding_cost = HOLDING_COST[echelon_name]
-        ordering_cost = ORDERING_COST[echelon_name]
+        # holding_cost = HOLDING_COST[echelon_name]
+        # ordering_cost = ORDERING_COST[echelon_name]
+        holding_cost = HOLDING_COST.get(echelon_name, 0)
+        ordering_cost = ORDERING_COST.get(echelon_name, 0)
         stock = cost_df.loc[i, "store_total_stock"]
         cycle_days = cost_df.loc[i, "cycle_time_in_days"]
 

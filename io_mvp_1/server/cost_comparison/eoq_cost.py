@@ -23,8 +23,10 @@ def eoq_cost_function(df, cyc_df):
     for i, row in merged_df.iterrows():
         echelon_code = row["Echelon"]
         echelon_name = echelon_code
-        holding_cost = HOLDING_COST[echelon_name]
-        ordering_cost = ORDERING_COST[echelon_name]
+        # holding_cost = HOLDING_COST[echelon_name]
+        # ordering_cost = ORDERING_COST[echelon_name]
+        holding_cost = HOLDING_COST.get(echelon_name, 0)
+        ordering_cost = ORDERING_COST.get(echelon_name, 0)
         quantity = row["Quantity"]
         cycle_time = row["cycle_time_in_days"]
 

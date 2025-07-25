@@ -1,11 +1,12 @@
 
 import pandas as pd
 from server.data_processing.Input_Data import load_pickle_as_dataframe
+from .config import cost_path,lead_path
 
 
-cost_df =  load_pickle_as_dataframe("C:/Users/Saambavi/Desktop/inventory model/io_mvp_1/shared_data/node_data.pkl")
+cost_df =  load_pickle_as_dataframe(cost_path)
 
-lead_time_df  = load_pickle_as_dataframe("C:/Users/Saambavi/Desktop/inventory model/io_mvp_1/shared_data/lead_time.pkl")
+lead_time_df  = load_pickle_as_dataframe(lead_path)
 
      # Source Code, Target Code, Lead Time
 
