@@ -10,7 +10,7 @@ import os
 
 # --- Page Setup ---
 st.set_page_config(page_title="Unified Inventory Dashboard", layout="wide")
-st.title("📦 Inventory Optimization Dashboard")
+st.title("Inventory Optimization Dashboard")
 
 # --- Load Session Data ---
 if "merged_df" not in st.session_state:

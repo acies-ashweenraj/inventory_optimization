@@ -15,12 +15,22 @@ st.markdown("---")
 st.markdown("""
 
 
-This platform helps you:
--  Upload and analyze your order and stock data.
--  Detect overstocked and understocked SKUs with Root Cause Analysis.
--  Understand SKU performance through segmentation (ABC, XYZ).
--  Monitor inventory turnover, reorder points, and inactivity patterns.
-- Use GenAI to interpret stock health and make data-driven decisions.
+Welcome to the Inventory Optimization 
+This helps you:
 
->  Use the sidebar to explore: Upload Data → View Dashboard → Get Recommendations.
+-- Upload and Analyze: Import your current inventory data, network structure, and MEIO inputs for detailed analysis.
+
+-- Identify Imbalances: Automatically detect overstocked and understocked SKUs using root cause analysis.
+
+-- Segment SKUs: Understand product behavior through ABC-XYZ segmentation for better inventory decisions.
+
+-- Track Key Metrics: Monitor inventory turnover, reorder points, safety stock levels, and inactivity trends.
+
+-- Leverage GenAI: Use AI-driven insights to interpret inventory health and support data-driven decisions.
+
+-- Optimize Distribution: Discover how to distribute inventory across the network and schedule replenishments efficiently.
+
+Use the sidebar to begin: Upload Data → View Dashboard → Get Recommendations
+
+
 """)

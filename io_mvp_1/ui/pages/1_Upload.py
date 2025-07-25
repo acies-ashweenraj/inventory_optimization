@@ -207,7 +207,7 @@ if st.session_state.upload_status["Orders"] and st.session_state.upload_status["
             traceback.print_exc()
 
 # ------------------- STATUS TABLE -------------------
-st.markdown("### 📋 Upload Status Summary")
+st.markdown("###  Upload Status Summary")
 st.dataframe(pd.DataFrame({
     "Dataset": list(st.session_state.upload_status.keys()),
     "Status": ["✅" if v else "❌" for v in st.session_state.upload_status.values()]

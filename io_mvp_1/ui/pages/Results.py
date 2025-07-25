@@ -10,13 +10,13 @@ BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 OUTPUT_DATA_PATH = os.path.join(BASE_PATH, "output_data")
 
 DISTRIBUTION_FILES = {
-    "📦 DC → Warehouse Distribution": os.path.join(OUTPUT_DATA_PATH, "distribution", "dc_warehouse_distribution_df.xlsx"),
-    "📦 Warehouse → Store Distribution": os.path.join(OUTPUT_DATA_PATH, "distribution", "warehouse_store_distribution_df.xlsx")
+    "DC → Warehouse Distribution": os.path.join(OUTPUT_DATA_PATH, "distribution", "dc_warehouse_distribution_df.xlsx"),
+    "Warehouse → Store Distribution": os.path.join(OUTPUT_DATA_PATH, "distribution", "warehouse_store_distribution_df.xlsx")
 }
 
 SCHEDULING_FILES = {
-    "📅 Store Order Schedule": os.path.join(OUTPUT_DATA_PATH, "schedule_data", "stores_order_schedule.xlsx"),
-    "📅 Warehouse Order Schedule": os.path.join(OUTPUT_DATA_PATH, "schedule_data", "warehouses_order_schedule.xlsx")
+    "Store Order Schedule": os.path.join(OUTPUT_DATA_PATH, "schedule_data", "stores_order_schedule.xlsx"),
+    "Warehouse Order Schedule": os.path.join(OUTPUT_DATA_PATH, "schedule_data", "warehouses_order_schedule.xlsx")
 }
 
 def load_excel(path):
@@ -46,14 +46,14 @@ def display_section(title, files_dict):
         buffer.seek(0)
 
         st.download_button(
-            label="⬇️ Download Excel",
+            label="Download Excel",
             data=buffer,
             file_name=os.path.basename(file_path),
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
 def results_page():
-    st.title("🧮 MEIO Results – Distribution & Scheduling")
+    st.title("MEIO Results – Distribution & Scheduling")
 
     # Display Distribution Section
     display_section("Distribution Results", DISTRIBUTION_FILES)
