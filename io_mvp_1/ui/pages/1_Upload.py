@@ -162,46 +162,44 @@ if uploaded_orders and uploaded_stock:
 
 st.subheader("📥 Step 2: Upload MEIO Input Data")
 
-# Define paths for the pickle files
-pkl_paths = {
-    "demand_forecast": os.path.join(SHARED_DIR, "demand_forecast.pkl"),
-    "lead_time": os.path.join(SHARED_DIR, "lead_time.pkl"),
-    "node_data": os.path.join(SHARED_DIR, "node_data.pkl"),
+# Define paths for Excel files (no pickle now)
+excel_paths = {
+    "demand_forecast": os.path.join(SHARED_DIR, "demand_forecast.xlsx"),
+    "lead_time": os.path.join(SHARED_DIR, "lead_time.xlsx"),
+    "node_data": os.path.join(SHARED_DIR, "node_data.xlsx"),
 }
 
 # Upload widgets
 uploaded_files = {
     key: st.file_uploader(f"📤 Upload {key.replace('_', ' ').title()} (.xlsx)", type=["xlsx"], key=key)
-    for key in pkl_paths
+    for key in excel_paths
 }
 
-# Save each uploaded file as a pickle
-# Save each uploaded file as a pickle
+# Save each uploaded file as Excel
 for key, uploaded_file in uploaded_files.items():
     if uploaded_file:
         try:
             df = pd.read_excel(uploaded_file)
-            with open(pkl_paths[key], "wb") as f:
-                pickle.dump(df, f)
-            st.success(f"✅ {key.replace('_', ' ').title()} saved as pickle.")
+            df.to_excel(excel_paths[key], index=False)
+            st.success(f"✅ {key.replace('_', ' ').title()} saved to shared folder.")
         except Exception as e:
             st.error(f"❌ Failed to save {key}: {e}")
 
 # ---------------------------- #
-# STEP 3 — Run MEIO Engine (OUTSIDE the loop ✅)
+# STEP 3 — Run MEIO Engine
 st.subheader("⚙️ Step 3: Run MEIO Engine")
 
-if all(os.path.exists(p) for p in pkl_paths.values()):
+# Check if all required files exist
+if all(os.path.exists(p) for p in excel_paths.values()):
     if st.button("🚀 Run MEIO Engine"):
         try:
+            from server.app import run_meio_pipeline
             run_meio_pipeline()
             st.success("✅ MEIO processing completed.")
         except Exception as e:
             st.error(f"❌ MEIO processing failed: {e}")
-
-            # Capture and display full traceback
             tb = io.StringIO()
             traceback.print_exc(file=tb)
-            st.code(tb.getvalue(), language="python")  # Shows traceback in Streamlit
+            st.code(tb.getvalue(), language="python")
 else:
-    st.warning("⚠️ Please upload all required MEIO input files before running the engine.")
+    st.warning("⚠️ Please upload all required MEIO input files before running the engine")
