@@ -55,8 +55,8 @@ with tabs[0]:
         df["Order Quantity sum"] = df["Current Stock Quantity"] * 0.7 + np.random.normal(0, 0.2, len(df)) * df["Current Stock Quantity"]
         df["Order Quantity sum"] = df["Order Quantity sum"].clip(lower=0).round()
 
-    if "Average Lead Time (days)" not in df.columns:
-        df["Average Lead Time (days)"] = 7
+    if "Average Lead Time" not in df.columns:
+        df["Average Lead Time"] = 7
     if "Maximum Lead Time (days)" not in df.columns:
         df["Maximum Lead Time (days)"] = 10
     if "Safety Stock" not in df.columns:
@@ -131,16 +131,70 @@ with tabs[0]:
 
     st.markdown("---")
 
-    # --- Chart 1: Stock vs Safety Stock ---
-    st.subheader("Stock vs Safety Stock (Top SKUs at Risk)")
-    top15 = df_filtered.sort_values("Current Stock Quantity", ascending=False).head(15)
-    fig1 = go.Figure()
-    fig1.add_trace(go.Bar(x=top15["SKU ID"], y=top15["Current Stock Quantity"], name="Current Stock", marker_color="#4e79a7"))
-    fig1.add_trace(go.Scatter(x=top15["SKU ID"], y=top15["Safety Stock"], name="Safety Stock", mode="lines+markers", line=dict(color="#e15759", width=2)))
-    fig1.update_layout(barmode='group', xaxis_title="Top SKUs", yaxis_title="Quantity", height=400)
-    st.plotly_chart(fig1, use_container_width=True)
+    # --- Chart 1: Stock + Safety Stock vs Demand (with user input) ---
+    st.subheader("Stock + Safety Stock vs Demand")
 
-    st.markdown("---")
+    # --- User Input: Service Level Percentage ---
+    st.markdown("#### Enter Desired Service Level (%)")
+    service_level_input = st.number_input("Enter a value between 50 and 99.99", min_value=50.0, max_value=99.99, value=95.0, step=0.1)
+
+    # --- Convert Service Level to Z-score ---
+    from scipy.stats import norm
+    service_level_decimal = service_level_input / 100
+    Z = round(norm.ppf(service_level_decimal), 2)
+
+    st.markdown(f"**Z-score calculated for {service_level_input}% service level:** `{Z}`")
+
+    # --- Safety Stock Calculation ---
+    df_filtered["Daily Demand StdDev"] = df_filtered["Avg Daily Demand"] * 0.5  # Assume 10% coefficient of variation
+    df_filtered["Safety Stock"] = Z * df_filtered["Daily Demand StdDev"] * np.sqrt(df_filtered["Average Lead Time"])
+
+    # --- Total Coverage and Demand ---
+    df_filtered["Total Coverage"] = df_filtered["Current Stock Quantity"] + df_filtered["Safety Stock"]
+    df_filtered["Total Demand"] = df_filtered["Order Quantity sum"]
+
+    # --- Select Top 15 SKUs by Demand ---
+    top15 = df_filtered.sort_values("Total Demand", ascending=False).head(15)
+
+    # --- Plotting ---
+    fig_stock = go.Figure()
+
+    # Bar: Current Stock
+    fig_stock.add_trace(go.Bar(
+        x=top15["SKU ID"],
+        y=top15["Current Stock Quantity"],
+        name="Current Stock",
+        marker_color="#4e79a7"
+    ))
+
+    # Bar: Safety Stock (stacked)
+    fig_stock.add_trace(go.Bar(
+        x=top15["SKU ID"],
+        y=top15["Safety Stock"],
+        name="Safety Stock",
+        marker_color="#f28e2c"
+    ))
+
+    # Line: Total Demand
+    fig_stock.add_trace(go.Scatter(
+        x=top15["SKU ID"],
+        y=top15["Total Demand"],
+        name="Total Demand",
+        mode="lines+markers",
+        line=dict(color="#e15759", width=3)
+    ))
+
+    # Layout
+    fig_stock.update_layout(
+        barmode='stack',
+        xaxis_title="Top SKUs",
+        yaxis_title="Quantity",
+        title=f"Stock + Safety Stock vs Demand ({service_level_input:.1f}% Service Level)",
+        height=450
+    )
+
+    st.plotly_chart(fig_stock, use_container_width=True)
+
 
     # --- Chart 2: RCA Scatter Plot ---
     st.subheader("Root Cause Analysis (Stock vs Demand)")
@@ -168,7 +222,7 @@ with tabs[0]:
     st.write(f"**Total Demand (Year):** {sku_row['Order Quantity sum']:.0f}")
     st.write(f"**Average Daily Demand:** {sku_row['Avg Daily Demand']:.2f}")
     st.write(f"**Safety Stock:** {sku_row['Safety Stock']:.2f}")
-    st.write(f"**Lead Time:** {sku_row['Average Lead Time (days)']} days")
+    st.write(f"**Lead Time:** {sku_row['Average Lead Time']} days")
 
     # --- RCA Narrative ---
     st.markdown("### Root Cause & Recommendation")
@@ -197,13 +251,41 @@ with tabs[0]:
 
     st.markdown("---")
 
-    # --- Chart 3: Top SKUs by Order Value ---
-    st.subheader("Top SKUs by Order Value")
-    df_filtered["Order Value"] = df_filtered["Order Quantity sum"] * df_filtered["Unit Price"]
-    top_value = df_filtered.sort_values(by="Order Value", ascending=False).head(15)
-    fig3 = px.bar(top_value, x="Order Value", y="SKU ID", orientation="h", color="Order Value", color_continuous_scale="Viridis")
-    fig3.update_layout(height=450, yaxis_title="SKU ID", xaxis_title="Order Value (₹)")
-    st.plotly_chart(fig3, use_container_width=True)
+   # --- Chart 3: Top SKUs by Custom Metric ---
+
+    # --- Metric Options ---
+    metric_options = {
+        "Order Quantity": "Order Quantity sum",
+        "Order Value (₹)": "Order Value",
+        "Current Stock Quantity": "Current Stock Quantity",
+        "Stock Value (₹)": "Stock Value",
+        "Average Daily Demand": "Avg Daily Demand"
+    }
+
+    # --- Dropdown for Metric Selection ---
+    selected_metric_label = st.selectbox("Select a metric to view top SKUs:", list(metric_options.keys()))
+    selected_metric_col = metric_options[selected_metric_label]
+
+    # --- Prepare Data ---
+    if "Order Value" not in df_filtered.columns:
+        df_filtered["Order Value"] = df_filtered["Order Quantity sum"] * df_filtered["Unit Price"]
+
+    top_metric = df_filtered.sort_values(by=selected_metric_col, ascending=False).head(15)
+
+    # --- Plotting ---
+    fig_top_metric = px.bar(
+        top_metric,
+        x=selected_metric_col,
+        y="SKU ID",
+        orientation="h",
+        color=selected_metric_col,
+        color_continuous_scale="Viridis",
+        labels={selected_metric_col: selected_metric_label},
+        title=f"Top SKUs by {selected_metric_label}"
+    )
+    fig_top_metric.update_layout(height=450, yaxis_title="SKU ID", xaxis_title=selected_metric_label)
+    st.plotly_chart(fig_top_metric, use_container_width=True)
+
 
 # ----------------------------- TAB 2: GenAI Chatbot -----------------------------
 with tabs[1]:
@@ -282,7 +364,7 @@ with tabs[2]:
 
     # Rename and fill missing columns
     if 'Average Lead Time' in df.columns:
-        df.rename(columns={'Average Lead Time': 'Average Lead Time (days)'}, inplace=True)
+        df.rename(columns={'Average Lead Time': 'Average Lead Time'}, inplace=True)
     if 'Safety Stock' not in df.columns:
         df['Safety Stock'] = 0
 
@@ -309,9 +391,9 @@ with tabs[2]:
 
         df_inactivity = df[df['Days Since Last Movement'] <= 730]
 
-        df['Avg Daily Demand'] = df['Order Quantity sum'] / df['Average Lead Time (days)'].replace(0, np.nan)
+        df['Avg Daily Demand'] = df['Order Quantity sum'] / df['Average Lead Time'].replace(0, np.nan)
         df['Avg Daily Demand'] = df['Avg Daily Demand'].fillna(0)
-        df['Reorder Point'] = df['Avg Daily Demand'] * df['Average Lead Time (days)'] + df['Safety Stock']
+        df['Reorder Point'] = df['Avg Daily Demand'] * df['Average Lead Time'] + df['Safety Stock']
         df['Inventory Turnover Ratio'] = df['Order Quantity sum'] / df['Current Stock Quantity'].replace(0, np.nan)
         df['Inventory Turnover Ratio'] = df['Inventory Turnover Ratio'].fillna(0)
 
@@ -380,34 +462,102 @@ with tabs[2]:
         else:
             inactive_summary = filtered_df_inactivity['Inactivity Bucket'].value_counts().reset_index()
             inactive_summary.columns = ['Inactivity Period', 'Inactive SKU Count']
-            st.bar_chart(inactive_summary.set_index('Inactivity Period'))
+            # st.bar_chart(inactive_summary.set_index('Inactivity Period'))
+        
+        # --- Inactivity Table View ---
+            # --- Inactivity Analysis Table with Time Granularity (No Range Slider) ---
+
+            st.markdown("<h4 style='margin-top:40px;'>📋 Inactivity Analysis</h4>", unsafe_allow_html=True)
+
+            # --- Time Granularity Selector ---
+            granularity = st.selectbox("Select Time Granularity:", ["Days", "Weeks", "Months", "Years"])
+
+            # --- Convert Days Since Last Movement into Selected Granularity ---
+            def convert_granularity(days, granularity):
+                if days < 0:
+                    return "No Movement"
+                if granularity == "Weeks":
+                    return f"{int(days // 7)} weeks"
+                elif granularity == "Months":
+                    return f"{int(days // 30)} months"
+                elif granularity == "Years":
+                    return f"{int(days // 365)} years"
+                else:
+                    return f"{int(days)} days"
+
+            filtered_df_inactivity["Inactivity Bucket"] = filtered_df_inactivity["Days Since Last Movement"].apply(
+                lambda x: convert_granularity(x, granularity)
+            )
+
+            # --- Bucket Filter Dropdown ---
+            bucket_options = sorted(filtered_df_inactivity["Inactivity Bucket"].unique())
+            selected_buckets = st.multiselect("Filter by Inactivity Bucket:", ["All"] + bucket_options, default=["All"])
+
+            if "All" in selected_buckets or not selected_buckets:
+                df_inact_filtered = filtered_df_inactivity.copy()
+            else:
+                df_inact_filtered = filtered_df_inactivity[filtered_df_inactivity["Inactivity Bucket"].isin(selected_buckets)]
+
+            # --- Columns to Display ---
+            display_cols = [
+                "SKU ID",
+                "Category" if "Category" in df_inact_filtered.columns else None,
+                "Current Stock Quantity",
+                "Days Since Last Movement",
+                "Inactivity Bucket",
+                "Movement Category"
+            ]
+            if "ABC-XYZ Class" in df_inact_filtered.columns:
+                display_cols.append("ABC-XYZ Class")
+
+            # Clean column list
+            display_cols = [col for col in display_cols if col]
+
+            # --- Display Table ---
+            st.dataframe(
+                df_inact_filtered[display_cols].sort_values("Days Since Last Movement", ascending=False).reset_index(drop=True),
+                use_container_width=True
+            )
+
+
+
 
         # --------------------- Export Section -------------------
-        st.markdown("<h3 style='color:black'>Export Metrics to Excel</h3>", unsafe_allow_html=True)
-        options = st.multiselect("Choose data to export:", [
-            "ABC Inventory Classification",
-            "XYZ Classification",
-            "Inventory Turnover Ratio",
-            "Reorder points",
-            "Stock Status Classification"
-        ])
+        st.markdown("<h3 style='color:white'>Export Metrics to Excel</h3>", unsafe_allow_html=True)
+
+        # --- Display each option as a checkbox ---
+        abc_selected = st.checkbox("ABC Inventory Classification")
+        xyz_selected = st.checkbox("XYZ Classification")
+        itr_selected = st.checkbox("Inventory Turnover Ratio")
+        reorder_selected = st.checkbox("Reorder points")
+        status_selected = st.checkbox("Stock Status Classification")
+
         if st.button("Export to Excel"):
-            export_df = pd.DataFrame()
-            export_df["SKU ID"] = df["SKU ID"]
-            if "ABC Inventory Classification" in options:
-                export_df["ABC Class"] = df["ABC Class"]
-            if "XYZ Classification" in options:
-                export_df["XYZ Class"] = df["XYZ Class"]
-            if "Inventory Turnover Ratio" in options:
-                export_df["Inventory Turnover Ratio"] = df["Inventory Turnover Ratio"]
-            if "Reorder points" in options:
-                export_df["Reorder Point"] = df["Reorder Point"]
-            if "Stock Status Classification" in options:
-                export_df["Stock Status"] = df["Movement Category"]
-            buffer = BytesIO()
-            with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-                export_df.to_excel(writer, index=False, sheet_name="Metrics Export")
-            st.download_button("Download Excel", data=buffer.getvalue(), file_name="inventory_metrics_export.xlsx")
+            selected = any([abc_selected, xyz_selected, itr_selected, reorder_selected, status_selected])
+            
+            if not selected:
+                st.warning("Please select at least one metric to export.")
+            else:
+                export_df = pd.DataFrame()
+                export_df["SKU ID"] = df["SKU ID"]
+
+                if abc_selected:
+                    export_df["ABC Class"] = df["ABC Class"]
+                if xyz_selected:
+                    export_df["XYZ Class"] = df["XYZ Class"]
+                if itr_selected:
+                    export_df["Inventory Turnover Ratio"] = df["Inventory Turnover Ratio"]
+                if reorder_selected:
+                    export_df["Reorder Point"] = df["Reorder Point"]
+                if status_selected:
+                    export_df["Stock Status"] = df["Movement Category"]
+
+                buffer = BytesIO()
+                with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+                    export_df.to_excel(writer, index=False, sheet_name="Metrics Export")
+
+                st.download_button("Download Excel", data=buffer.getvalue(), file_name="inventory_metrics_export.xlsx")
+
 
     except Exception as e:
         st.error(f"Analysis Error: {e}")
