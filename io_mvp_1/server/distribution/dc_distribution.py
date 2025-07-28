@@ -8,5 +8,4 @@ def dc_distribution(dc_df,warehouse_df):
     for i in range(len(warehouse_df)):
         warehouse_df.loc[i,"demand_split"]=warehouse_df.loc[i,"Warehouse_Monthly_Demand"]/warehouse_df.loc[i,"DC_Monthly_Demand"]
         warehouse_df.loc[i,"warehouse_total_stock"]=warehouse_df.loc[i,"demand_split"]*warehouse_df.loc[i,"total_stock"]
-        print("DC done")
     return warehouse_df

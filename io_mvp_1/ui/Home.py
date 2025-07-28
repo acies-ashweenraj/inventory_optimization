@@ -2,35 +2,34 @@ import streamlit as st
 
 st.set_page_config(layout="wide", page_title="Inventory Assistant")
 
-# Title and logo side-by-side
+
 col1, col2 = st.columns([6, 1])
 with col1:
-    st.markdown("##  Inventory Analytics & Assistant")
+    st.markdown("## Inventory Analytics & Assistant")
 with col2:
-    st.image("acies_global_logo.jpeg", width=80)  # Make sure this file is in the same folder
-
+    st.image("acies_global_logo.jpeg", width=80)  
 st.markdown("---")
 
-# App Description
+
 st.markdown("""
+### Welcome to the Inventory Optimization Platform
 
+This application enables you to transform your inventory operations through intelligent planning, analysis, and replenishment strategies.
 
-Welcome to the Inventory Optimization 
-This helps you:
+**Key Capabilities:**
 
--- Upload and Analyze: Import your current inventory data, network structure, and MEIO inputs for detailed analysis.
+**Upload and Analyze:** Import your inventory, demand forecast, product master, and network structure to begin a unified analysis.
 
--- Identify Imbalances: Automatically detect overstocked and understocked SKUs using root cause analysis.
+**Identify Imbalances:** Automatically detect overstocked or understocked SKUs using root cause diagnostics.
 
--- Segment SKUs: Understand product behavior through ABC-XYZ segmentation for better inventory decisions.
+**Segment SKUs:** Perform ABC-XYZ classification to understand SKU importance and variability for strategic stocking.
 
--- Track Key Metrics: Monitor inventory turnover, reorder points, safety stock levels, and inactivity trends.
+**Track Key Metrics:** Monitor cycle stock, reorder points, safety stock levels, lead times, and inactivity patterns.
 
--- Leverage GenAI: Use AI-driven insights to interpret inventory health and support data-driven decisions.
+**AI-Powered Insights:** Leverage GenAI to interpret inventory health, recommend actions, and support better decisions.
 
--- Optimize Distribution: Discover how to distribute inventory across the network and schedule replenishments efficiently.
+**Optimize Distribution:** Determine how to allocate and distribute inventory across nodes with calculated order quantities and schedules.
 
-Use the sidebar to begin: Upload Data → View Dashboard → Get Recommendations
-
-
+To get started, use the sidebar:
+**Upload Data → View Dashboard → Get Recommendations**
 """)

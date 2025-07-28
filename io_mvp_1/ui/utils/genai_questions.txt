@@ -1,0 +1,30 @@
+Which SKUs are currently overstocked beyond their historical average order quantities?
+Which SKUs are at risk of stockout given recent order trends and lead times?
+Are there SKUs where the maximum lead time exceeds the reorder buffer, potentially causing delays?
+Which locations hold the highest value of inventory based on unit price × quantity?
+What percentage of inventory is held in each warehouse (e.g., WH1, WH2, WH3)?
+Are any SKUs inactive or not ordered in the last 30/60/90 days but still held in stock?
+Which categories (e.g., Hardware, Tools) have the largest stock volume and highest monetary value?
+Which SKUs are fast-moving (high frequency of orders)?
+Which SKUs are slow-moving and may require markdowns or liquidation?
+How does stock velocity (order quantity / time) vary across SKUs?
+Which SKUs show consistent demand patterns, and which are more sporadic?
+What are the top 10 most ordered SKUs in the last 90 days?
+Is there a correlation between unit price and order frequency?
+What is the average daily order quantity per SKU?
+What is the peak order date(s) and which SKUs were most in demand then?
+Are there seasonal trends in ordering behavior for specific SKUs?
+Which SKUs have experienced the most volatility in order quantities?
+How often are small orders placed for high-value SKUs?
+Which SKUs are regularly ordered but understocked?
+Which SKUs have long average lead times and high order frequency?
+Are there SKUs where stock quantity is below average order size × lead time?
+What is the lead time variability across different categories?
+Are there any SKUs with maximum lead time > 2× average lead time?
+Can any stockouts be predicted early using lead time and order rate?
+Which SKUs should we reorder now based on demand and lead time?
+How can we reallocate excess stock from WH3 to WH1/WH2 to balance inventory?
+Which SKUs could benefit from Safety Stock recalibration?
+Are there duplicate or similar SKUs serving the same purpose across warehouses?
+What is the potential working capital tied up in slow-moving inventory?
+What is the ideal reorder point and EOQ (Economic Order Quantity) for each SKU?

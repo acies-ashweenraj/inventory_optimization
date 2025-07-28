@@ -10,10 +10,10 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SHARED_DIR = os.path.join(BASE_DIR, "..", "..", "shared_data")
 os.makedirs(SHARED_DIR, exist_ok=True)
 ECHELON_COLORS = {
-    "Factory": "#FF6F61",     # Red-ish
+
     "DC": "#6B5B95",          # Purple
     "Warehouse": "#88B04B",   # Green
-    "Store": "#F7CAC9"        # Pink
+    "Store": "#FF6F61"        # Pink
 }
 
 def load_network_data():
@@ -84,6 +84,8 @@ def create_flow_layout(location_df):
             }
     return layout
 
+
+
 def create_flowchart_figure(layout, network_df):
     fig = go.Figure()
 
@@ -123,6 +125,22 @@ def create_flowchart_figure(layout, network_df):
                 opacity=0.8
             )
 
+    # === Add Legend Items ===
+    legend_x = max([v['x'] for v in layout.values()] + [0]) + 200  # place legend to the right
+    legend_y_start = 0
+    spacing = 60
+
+    for i, (echelon, color) in enumerate(ECHELON_COLORS.items()):
+        fig.add_trace(go.Scatter(
+            x=[legend_x], y=[legend_y_start - i * spacing],
+            mode="markers+text",
+            marker=dict(size=15, color=color),
+            text=[echelon],
+            textposition="middle right",
+            hoverinfo="skip",
+            showlegend=False
+        ))
+
     fig.update_layout(
         showlegend=False,
         height=650,
@@ -157,7 +175,7 @@ def show_network_structure():
 
     # ---------- Country Filter ----------
     with col1:
-        with st.expander("🌍 Country Filter", expanded=False):
+        with st.expander("Country Filter", expanded=False):
             for val in sorted(location_df['Country'].unique()):
                 if st.checkbox(val, value=val in st.session_state.selected_country, key=f"country_{val}"):
                     if val not in st.session_state.selected_country:
@@ -168,7 +186,7 @@ def show_network_structure():
 
     # ---------- Echelon Type Filter ----------
     with col2:
-        with st.expander("🏢 Echelon Type Filter", expanded=False):
+        with st.expander("Echelon Type Filter", expanded=False):
             for val in sorted(location_df['Echelon_Type'].unique()):
                 if st.checkbox(val, value=val in st.session_state.selected_echelon_type, key=f"echelon_{val}"):
                     if val not in st.session_state.selected_echelon_type:
@@ -179,7 +197,7 @@ def show_network_structure():
 
     # ---------- Location ID Filter ----------
     with col3:
-        with st.expander("📍 Location ID Filter", expanded=False):
+        with st.expander("Location ID Filter", expanded=False):
             for val in sorted(location_df['Location_ID'].unique()):
                 if st.checkbox(str(val), value=val in st.session_state.selected_location_id, key=f"loc_{val}"):
                     if val not in st.session_state.selected_location_id:
@@ -203,13 +221,13 @@ def show_network_structure():
         (network_df['To_Location_ID'].isin(valid_ids))
     ]
 
-    st.subheader("📊 Flowchart View by Echelon Tier")
+    st.subheader("Flowchart View by Echelon Tier")
     layout = create_flow_layout(filtered_df)
     fig_flow = create_flowchart_figure(layout, filtered_network_df)
     st.plotly_chart(fig_flow, use_container_width=True)
 
-    st.subheader("🗺️ Geographical Location Map")
-    st.caption("🌀 This globe is interactive — drag to rotate, scroll to zoom, and click on markers to explore locations.")
+    st.subheader("Geographical Location Map")
+    st.caption("This globe is interactive — drag to rotate, scroll to zoom, and click on markers to explore locations.")
     map_projection = st.radio(
         "Select Map View Type",
         options=["3D Globe", "2D Map"],
