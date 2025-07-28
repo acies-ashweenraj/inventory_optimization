@@ -12,7 +12,7 @@ from server.app import run_meio_pipeline
 # ------------------- PATH SETUP -------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SHARED_DIR = os.path.join(BASE_DIR, "..", "..", "shared_data")
-SAMPLE_DIR = os.path.join(BASE_DIR, "..", "..", "server\data")
+SAMPLE_DIR = os.path.join(BASE_DIR, "..", "..", "server", "data")
 os.makedirs(SHARED_DIR, exist_ok=True)
 
 # ------------------- SESSION INIT -------------------
@@ -28,6 +28,8 @@ if "upload_status" not in st.session_state:
     }
 if "uploaded_dataframes" not in st.session_state:
     st.session_state.uploaded_dataframes = {}
+if "file_names" not in st.session_state:
+    st.session_state.file_names = {}
 
 # ------------------- FILE PATHS -------------------
 sample_paths = {
@@ -44,6 +46,7 @@ save_paths = {
     "Lead Time": os.path.join(SHARED_DIR, "lead_time.xlsx"),
     "Node Data": os.path.join(SHARED_DIR, "node_data.xlsx")
 }
+
 # ------------------- AUTO MAPPING HELPERS -------------------
 expected_orders_cols = {
     "Order Date": ["Order Date", "Date", "Order_Date", "OrderDate"],
@@ -67,17 +70,16 @@ def auto_map(col_list, candidates):
         if match:
             return match[0]
     return None
+
 # ------------------- UI HEADER -------------------
 col1, col2 = st.columns([0.75, 0.25])
 with col1:
-    st.title("Upload Inventory, Orders & MEIO Data")
+    st.title("Upload Data")
 with col2:
-    if st.button(" Use Sample Data"):
-        
+    if st.button("Use Sample Data"):
         success = True
         missing_files = []
 
-        # Load sample files safely
         for key in sample_paths:
             sample_file = sample_paths[key]
             if os.path.exists(sample_file):
@@ -86,22 +88,21 @@ with col2:
                     df.to_excel(save_paths[key], index=False)
                     st.session_state.uploaded_dataframes[key] = df
                     st.session_state.upload_status[key] = True
+                    st.session_state.file_names[key] = os.path.basename(sample_file)
                 except Exception as e:
-                    st.error(f" Error reading sample file for {key}: {e}")
+                    st.error(f"Error reading sample file for {key}: {e}")
                     success = False
             else:
                 missing_files.append(key)
                 success = False
 
         if missing_files:
-            st.warning(f" Missing sample files for: {', '.join(missing_files)}")
+            st.warning(f"Missing sample files for: {', '.join(missing_files)}")
         elif success:
-            st.success(" Sample data loaded successfully!")
+            st.success("Sample data loaded successfully!")
             st.session_state.use_sample = True
-        
 
             try:
-                # Now process Orders + Inventory
                 df_orders = st.session_state.uploaded_dataframes.get("Orders")
                 df_stock = st.session_state.uploaded_dataframes.get("Inventory")
 
@@ -135,18 +136,12 @@ with col2:
                 merged_df.fillna(0, inplace=True)
                 st.session_state["merged_df"] = merged_df
 
-                
             except Exception as e:
                 st.error(f"❌ Failed to process Inventory + Orders sample data: {e}")
                 traceback.print_exc()
 
-
-
-
-
-
 # ------------------- DROPDOWN FILE UPLOAD -------------------
-st.markdown("###  Select a dataset to upload")
+st.markdown("### Select a dataset to upload")
 selected = st.selectbox("Choose file to upload:", list(save_paths.keys()))
 
 uploaded_file = st.file_uploader(f"Upload {selected} (.xlsx)", type=["xlsx"], key=selected)
@@ -156,6 +151,7 @@ if uploaded_file:
         df.to_excel(save_paths[selected], index=False)
         st.session_state.upload_status[selected] = True
         st.session_state.uploaded_dataframes[selected] = df
+        st.session_state.file_names[selected] = uploaded_file.name
         st.success(f"{selected} uploaded successfully.")
         with st.expander(f" Preview {selected}"):
             st.dataframe(df, use_container_width=True)
@@ -165,7 +161,6 @@ if uploaded_file:
 
 # ------------------- PROCESS INVENTORY + ORDERS -------------------
 if st.session_state.upload_status["Orders"] and st.session_state.upload_status["Inventory"]:
-    st.markdown("")
     if st.button("Submit"):
         try:
             df_orders = st.session_state.uploaded_dataframes["Orders"]
@@ -196,34 +191,66 @@ if st.session_state.upload_status["Orders"] and st.session_state.upload_status["
                                 .merge(last_order_df, on="SKU ID", how="left")\
                                 .merge(median_days_df, on="SKU ID", how="left")
             merged_df.fillna(0, inplace=True)
-
             st.session_state["merged_df"] = merged_df
-            st.success(" Inventory + Orders processed.")
-            with st.expander(" See Merged Data"):
-                st.dataframe(merged_df, use_container_width=True)
 
+            st.success("Data processed.")
         except Exception as e:
             st.error(f"❌ Processing failed: {e}")
             traceback.print_exc()
 
-# ------------------- STATUS TABLE -------------------
-st.markdown("###  Upload Status Summary")
-st.dataframe(pd.DataFrame({
-    "Dataset": list(st.session_state.upload_status.keys()),
-    "Status": ["✅" if v else "❌" for v in st.session_state.upload_status.values()]
-}), use_container_width=True)
+# ------------------- STATUS TABLE WITH FILE NAME -------------------
+st.markdown("### Upload Status Summary")
+status_data = []
 
-# ------------------ RUN MEIO ENGINE -------------------
-st.markdown("###  Run MEIO Engine")
+for dataset in st.session_state.upload_status.keys():
+    status_data.append({
+        "Dataset": dataset,
+        "Status": "✅" if st.session_state.upload_status[dataset] else "❌",
+        "File Name": st.session_state.file_names.get(dataset, "-")
+    })
+
+status_df = pd.DataFrame(status_data)
+styled_table = status_df.to_html(index=False, escape=False)
+
+st.markdown(f"""
+    <div style="border:1px solid #ddd; border-radius:10px; padding:10px; background-color:#f9f9f9">
+        <style>
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 15px;
+            }}
+            th, td {{
+                text-align: left;
+                padding: 8px;
+                border-bottom: 1px solid #ddd;
+            }}
+            th {{
+                background-color: #f2f2f2;
+            }}
+        </style>
+        {styled_table}
+    </div>
+""", unsafe_allow_html=True)
+
+# ------------------- RUN MEIO ENGINE -------------------
+st.markdown("### Run MEIO Engine")
 if all([st.session_state.upload_status[k] for k in ["Demand Forecast", "Lead Time", "Node Data"]]):
-    if st.button("Run MEIO Engine"):
-        try:
-            run_meio_pipeline()
-            st.success(" MEIO Engine executed successfully.")
-        except Exception as e:
-            st.error("❌ MEIO Engine failed.")
-            tb = io.StringIO()
-            traceback.print_exc(file=tb)
-            st.code(tb.getvalue(), language="python")
+    if "engine_run" not in st.session_state:
+        st.session_state.engine_run = False
+
+    if not st.session_state.engine_run:
+        if st.button("Run MEIO Engine"):
+            try:
+                run_meio_pipeline()
+                st.success("MEIO Engine executed successfully.")
+                st.session_state.engine_run = True
+            except Exception as e:
+                st.error("❌ MEIO Engine failed.")
+                tb = io.StringIO()
+                traceback.print_exc(file=tb)
+                st.code(tb.getvalue(), language="python")
+    else:
+        st.button("Run MEIO Engine", disabled=True)
 else:
     st.warning("Upload all required MEIO input files to enable engine.")
