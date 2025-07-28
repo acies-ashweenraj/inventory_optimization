@@ -120,7 +120,7 @@ def create_flowchart_figure(layout, network_df):
     return fig
 
 def show_network_structure():
-    st.title("📡 Network Structure")
+    st.title(" Network Structure")
 
     location_df, network_df = load_network_data()
     if location_df is None or network_df is None:
