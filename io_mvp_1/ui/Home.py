@@ -7,7 +7,7 @@ col1, col2 = st.columns([6, 1])
 with col1:
     st.markdown("## Inventory Analytics & Assistant")
 with col2:
-    st.image("D:\Ashween\Desktop\meio\inventory_optimization\io_mvp_1\ui\acies_global_logo.jpeg", width=80)  
+    st.image(r"D:\Ashween\Desktop\meio\inventory_optimization\io_mvp_1\ui\acies_global_logo.jpeg", width=80)  
 st.markdown("---")
 
 

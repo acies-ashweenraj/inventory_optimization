@@ -3,29 +3,31 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
-import os
-import pickle
+from pathlib import Path
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-SHARED_DIR = os.path.join(BASE_DIR, "..", "..", "shared_data")
-os.makedirs(SHARED_DIR, exist_ok=True)
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / ".." / ".." / "server" / "data"
+
+lead_path = DATA_DIR / "Leadtime_MultiSKU.xlsx"
+cost_path = DATA_DIR / "Node_Costs.xlsx"
+
+
 ECHELON_COLORS = {
-
     "DC": "#6B5B95",          # Purple
     "Warehouse": "#88B04B",   # Green
     "Store": "#FF6F61"        # Pink
 }
 
+
 def load_network_data():
     try:
-        with open(os.path.join(SHARED_DIR, "lead_time.pkl"), "rb") as f:
-            network_df = pickle.load(f)
-        with open(os.path.join(SHARED_DIR, "node_data.pkl"), "rb") as f:
-            location_df = pickle.load(f)
+        network_df = pd.read_excel(lead_path)
+        location_df = pd.read_excel(cost_path)
     except Exception as e:
-        st.error(f"Error loading pickles: {e}")
+        st.error(f"Error loading Excel files: {e}")
         return None, None
 
+    # --- Standardize Columns ---
     network_df = network_df.rename(columns={
         "Source Code": "From_Location_ID",
         "Target Code": "To_Location_ID",
@@ -37,7 +39,7 @@ def load_network_data():
     location_df = location_df.rename(columns={"Node": "Location_ID"})
 
     if "Location_Name" not in location_df.columns:
-        location_df["Location_Name"] = location_df["Location_ID"].str.extract(r'_(.*)')[0]
+        location_df["Location_Name"] = location_df["Location_ID"].astype(str).str.extract(r'_(.*)')[0]
 
     if "Echelon_Type" not in location_df.columns:
         location_df["Echelon_Type"] = location_df["Location_ID"].apply(
@@ -54,6 +56,7 @@ def load_network_data():
 
     return location_df, network_df
 
+
 def get_echelon_order():
     return ["Factory", "DC", "Warehouse", "Store"]
 
@@ -65,6 +68,7 @@ def get_echelon_emoji(echelon):
         "Store": "🏪"
     }
     return emoji_map.get(echelon, "📍")
+
 
 def create_flow_layout(location_df):
     tiers = get_echelon_order()
@@ -83,7 +87,6 @@ def create_flow_layout(location_df):
                 'country': row.get('Country', '')
             }
     return layout
-
 
 
 def create_flowchart_figure(layout, network_df):
@@ -125,8 +128,8 @@ def create_flowchart_figure(layout, network_df):
                 opacity=0.8
             )
 
-    # === Add Legend Items ===
-    legend_x = max([v['x'] for v in layout.values()] + [0]) + 200  # place legend to the right
+    # === Legend ===
+    legend_x = max([v['x'] for v in layout.values()] + [0]) + 200
     legend_y_start = 0
     spacing = 60
 
@@ -152,28 +155,26 @@ def create_flowchart_figure(layout, network_df):
 
     return fig
 
+
 def show_network_structure():
     st.title("Supply Chain Network Structure")
 
     location_df, network_df = load_network_data()
     if location_df is None or network_df is None:
-        st.warning("Please upload Location and Network data in the Upload Data section.")
+        st.warning("Please check your Excel files in the data folder.")
         return
-
 
     st.markdown("<div class='filter-box'>", unsafe_allow_html=True)
 
-    # Initialize session state once
+    # Initialize session state filters
     for col in ['Country', 'Echelon_Type', 'Location_ID']:
         key = f"selected_{col.lower()}"
         if key not in st.session_state:
             st.session_state[key] = location_df[col].unique().tolist()
 
-    # COUNTRY
-# Create three equal-width columns
     col1, col2, col3 = st.columns(3)
 
-    # ---------- Country Filter ----------
+    # COUNTRY Filter
     with col1:
         with st.expander("Country Filter", expanded=False):
             for val in sorted(location_df['Country'].unique()):
@@ -184,7 +185,7 @@ def show_network_structure():
                     if val in st.session_state.selected_country:
                         st.session_state.selected_country.remove(val)
 
-    # ---------- Echelon Type Filter ----------
+    # Echelon Filter
     with col2:
         with st.expander("Echelon Type Filter", expanded=False):
             for val in sorted(location_df['Echelon_Type'].unique()):
@@ -195,7 +196,7 @@ def show_network_structure():
                     if val in st.session_state.selected_echelon_type:
                         st.session_state.selected_echelon_type.remove(val)
 
-    # ---------- Location ID Filter ----------
+    # Location ID Filter
     with col3:
         with st.expander("Location ID Filter", expanded=False):
             for val in sorted(location_df['Location_ID'].unique()):
@@ -208,12 +209,12 @@ def show_network_structure():
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-
+    # Filter Data
     filtered_df = location_df[
-    location_df['Country'].isin(st.session_state.selected_country) &
-    location_df['Echelon_Type'].isin(st.session_state.selected_echelon_type) &
-    location_df['Location_ID'].isin(st.session_state.selected_location_id)]
-
+        location_df['Country'].isin(st.session_state.selected_country) &
+        location_df['Echelon_Type'].isin(st.session_state.selected_echelon_type) &
+        location_df['Location_ID'].isin(st.session_state.selected_location_id)
+    ]
 
     valid_ids = filtered_df['Location_ID'].unique()
     filtered_network_df = network_df[
@@ -221,39 +222,35 @@ def show_network_structure():
         (network_df['To_Location_ID'].isin(valid_ids))
     ]
 
+    # Flowchart
     st.subheader("Flowchart View by Echelon Tier")
     layout = create_flow_layout(filtered_df)
     fig_flow = create_flowchart_figure(layout, filtered_network_df)
     st.plotly_chart(fig_flow, use_container_width=True)
 
+    # Map View
     st.subheader("Geographical Location Map")
-    st.caption("This globe is interactive — drag to rotate, scroll to zoom, and click on markers to explore locations.")
-    map_projection = st.radio(
-        "Select Map View Type",
-        options=["3D Globe", "2D Map"],
-        horizontal=True
-    )
-
-    # Mapping user choice to Plotly projection types
+    st.caption("Interactive globe — drag to rotate, zoom to explore.")
+    map_projection = st.radio("Select Map View Type", options=["3D Globe", "2D Map"], horizontal=True)
     projection_type = "orthographic" if "3D" in map_projection else "equirectangular"
 
     fig_map = px.scatter_geo(
-    filtered_df,
-    lat="Latitude",
-    lon="Longitude",
-    text="Location_Name",
-    color="Echelon_Type",
-    hover_name="Location_Name",
-    hover_data={
-        "Location_ID": True,
-        "Echelon_Type": True,
-        "Country": True,
-        "Latitude": False,
-        "Longitude": False
-    },
-    projection=projection_type,
-    template="none"  )
-
+        filtered_df,
+        lat="Latitude",
+        lon="Longitude",
+        text="Location_Name",
+        color="Echelon_Type",
+        hover_name="Location_Name",
+        hover_data={
+            "Location_ID": True,
+            "Echelon_Type": True,
+            "Country": True,
+            "Latitude": False,
+            "Longitude": False
+        },
+        projection=projection_type,
+        template="none"
+    )
 
     fig_map.update_traces(
         marker=dict(size=10),
@@ -277,6 +274,7 @@ def show_network_structure():
     )
 
     st.plotly_chart(fig_map, use_container_width=True)
+
 
 if __name__ == "__main__":
     show_network_structure()
