@@ -166,17 +166,34 @@ if st.session_state.upload_status["Orders"] and st.session_state.upload_status["
             df_orders = st.session_state.uploaded_dataframes["Orders"]
             df_stock = st.session_state.uploaded_dataframes["Inventory"]
 
+            # ---- Auto map ----
             order_mappings = {k: auto_map(df_orders.columns.tolist(), v) or "" for k, v in expected_orders_cols.items()}
             stock_mappings = {k: auto_map(df_stock.columns.tolist(), v) or "" for k, v in expected_stock_cols.items()}
 
+            # ---- Standardize Orders ----
             orders_df = df_orders[[order_mappings["Order Date"], order_mappings["SKU ID"], order_mappings["Order Quantity"]]]
             orders_df.columns = ["Order Date", "SKU ID", "Order Quantity"]
             orders_df["Order Date"] = pd.to_datetime(orders_df["Order Date"], errors="coerce")
 
+            # FIX: rename Order Quantity → Actual
+            orders_df = orders_df.rename(columns={"Order Quantity": "Actual"})
+
+            # ---- Standardize Inventory ----
             stock_df = df_stock[[stock_mappings[k] for k in expected_stock_cols if stock_mappings[k] in df_stock.columns]]
             stock_df.columns = list(expected_stock_cols.keys())[:len(stock_df.columns)]
 
-            agg_orders = orders_df.groupby("SKU ID").agg({"Order Quantity": ["sum", "mean", "std"]}).reset_index()
+            # FIX: rename hierarchy columns to Store / Warehouse / DC
+            rename_map = {}
+            if "Location" in stock_df.columns and "Store" not in stock_df.columns:
+                rename_map["Location"] = "Store"
+            if "Warehouse_ID" in stock_df.columns and "Warehouse" not in stock_df.columns:
+                rename_map["Warehouse_ID"] = "Warehouse"
+            if "DC_ID" in stock_df.columns and "DC" not in stock_df.columns:
+                rename_map["DC_ID"] = "DC"
+            stock_df.rename(columns=rename_map, inplace=True)
+
+            # ---- Aggregations ----
+            agg_orders = orders_df.groupby("SKU ID").agg({"Actual": ["sum", "mean", "std"]}).reset_index()
             agg_orders.columns = ["SKU ID", "Order Quantity sum", "Order Quantity mean", "Order Quantity std"]
 
             last_order_df = orders_df.groupby("SKU ID")["Order Date"].max().reset_index(name="Last Order Date")
@@ -187,13 +204,19 @@ if st.session_state.upload_status["Orders"] and st.session_state.upload_status["
                 return pd.Series({"Median Days Between Orders": group["Days Between Orders"].median()})
             median_days_df = orders_df.groupby("SKU ID").apply(compute_median_days).reset_index()
 
+            # ---- Merge ----
             merged_df = stock_df.merge(agg_orders, on="SKU ID", how="left")\
                                 .merge(last_order_df, on="SKU ID", how="left")\
                                 .merge(median_days_df, on="SKU ID", how="left")
             merged_df.fillna(0, inplace=True)
-            st.session_state["merged_df"] = merged_df
 
-            st.success("Data processed.")
+            # Save for pipeline
+            merged_path = os.path.join(SHARED_DIR, "merged_data.xlsx")
+            merged_df.to_excel(merged_path, index=False)   # FIX: persist for run_meio_pipeline()
+
+            st.session_state["merged_df"] = merged_df
+            st.success(f"Data processed. Saved merged dataset to {merged_path}")
+
         except Exception as e:
             st.error(f"❌ Processing failed: {e}")
             traceback.print_exc()

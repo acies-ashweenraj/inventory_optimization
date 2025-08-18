@@ -24,12 +24,31 @@ import pickle, os
 #     with open(os.path.join(SHARED_DIR, "node_data.pkl"), "rb") as f:
 #         df_nodes = pickle.load(f)
 
-def aggregate(df):
-    store_df = aggregate_store_monthly(df, date_col='TimeWeek', value_col='Actual',sku_col="ItemStat_Item")
-    warehouse_df = aggregate_warehouse_monthly(df, date_col='TimeWeek', value_col='Actual',sku_col="ItemStat_Item")
-    dc_df = aggregate_dc_monthly(df, date_col='TimeWeek', value_col='Actual',sku_col="ItemStat_Item")
+from server.data_processing.Data_Aggregate import (
+    aggregate_store_monthly,
+    aggregate_warehouse_monthly,
+    aggregate_dc_monthly
+)
 
-    return store_df,warehouse_df,dc_df
+def aggregate(df):
+    """
+    Aggregates data at Store, Warehouse, and DC levels.
+    Assumes df has at least: ['Order Date', 'Actual', 'ItemStat_Item', 'Store', 'Warehouse', 'DC']
+    """
+
+    store_df = aggregate_store_monthly(
+        df, date_col="Order Date", value_col="Actual", sku_col="ItemStat_Item"
+    )
+    warehouse_df = aggregate_warehouse_monthly(
+        df, date_col="Order Date", value_col="Actual", sku_col="ItemStat_Item", warehouse_col="Warehouse"
+    )
+    dc_df = aggregate_dc_monthly(
+        df, date_col="Order Date", value_col="Actual", sku_col="ItemStat_Item", dc_col="DC"
+    )
+
+    return store_df, warehouse_df, dc_df
+
+
 
 def calculate_metrics(store_df,warehouse_df,dc_df):
     store_demand_df=store_data(store_df)
