@@ -1,4 +1,5 @@
-from Preassumptions import HOLDING_COST, ORDERING_COST, CODE_MAP
+# from Preassumptions import HOLDING_COST, ORDERING_COST, CODE_MAP
+from Preassumptions import HOLDING_COST, ORDERING_COST
 import pandas as pd
 
 def non_eoq_cost_function(df):
@@ -7,11 +8,11 @@ def non_eoq_cost_function(df):
     cost_df["Echelon"] = cost_df["Store"]
     cost_df["From"] = cost_df["Warehouse"]
 
-    cost_df["total_cost"] = 0.0
+    cost_df["total_cost_non_eoq"] = 0.0
 
     for i in range(len(cost_df)):
         echelon_code = cost_df.loc[i, "Echelon"]
-        echelon_name = CODE_MAP[echelon_code]
+        echelon_name = echelon_code
 
         holding_cost = HOLDING_COST[echelon_name]
         ordering_cost = ORDERING_COST[echelon_name]
@@ -19,8 +20,8 @@ def non_eoq_cost_function(df):
         cycle_days = cost_df.loc[i, "cycle_time_in_days"]
 
         total_cost = ordering_cost + (stock / 2) * (holding_cost )
-        cost_df.loc[i, "total_cost"] = total_cost
+        cost_df.loc[i, "total_cost_non_eoq"] = total_cost
 
-    final_cost_df = cost_df.groupby(["From", "Echelon", "Year", "Month"])["total_cost"].sum().reset_index()
+    final_cost_df = cost_df.groupby(["From", "Echelon", "Year", "Month"])["total_cost_non_eoq"].sum().reset_index()
 
     return final_cost_df
