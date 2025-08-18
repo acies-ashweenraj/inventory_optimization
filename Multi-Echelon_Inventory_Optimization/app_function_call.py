@@ -8,15 +8,15 @@ from distribution.dc_distribution import dc_distribution
 from distribution.warehouse_distribution import warehouse_distribution
 from schedules import store_schedule
 from schedules import warehouse_schedule
+from cost_comparison import cost_merge,eoq_cost,non_eoq_cost
 from Preassumptions import STORE_SCHEDULE,WAREHOUSE_SCHEDULE
 from config import input_path,monthly_demand_path,calculated_metrics_path,distribution_path,schedule_path,cost_path
 
 
-
 def aggregate(df):
-    store_df = aggregate_store_monthly(df, date_col='TimeWeek', value_col='Actual')
-    warehouse_df = aggregate_warehouse_monthly(df, date_col='TimeWeek', value_col='Actual')
-    dc_df = aggregate_dc_monthly(df, date_col='TimeWeek', value_col='Actual')
+    store_df = aggregate_store_monthly(df, date_col='TimeWeek', value_col='Actual',sku_col="ItemStat_Item")
+    warehouse_df = aggregate_warehouse_monthly(df, date_col='TimeWeek', value_col='Actual',sku_col="ItemStat_Item")
+    dc_df = aggregate_dc_monthly(df, date_col='TimeWeek', value_col='Actual',sku_col="ItemStat_Item")
 
     return store_df,warehouse_df,dc_df
 
@@ -42,7 +42,14 @@ def schedule(store_demand_df,warehouse_demand_df):
 
     return store_schedule_df,warehouse_schedule_df
 
-def download(store_df,warehouse_df,dc_df,store_demand_df,warehouse_demand_df,dc_demand_df,warehouse_store_distribution,dc_warehouse_distribution,store_schedule_df,warehouse_schedule_df,eoq_cost_df,non_eoq_cost_df):
+def cost(store_schedule_df,store_demand_df,warehouse_store_distribution):
+    eoq_cost_df = eoq_cost.eoq_cost_function(store_schedule_df,store_demand_df)
+    non_eoq_cost_df = non_eoq_cost.non_eoq_cost_function(warehouse_store_distribution)
+    cost_merged_df = cost_merge.cost_merge_function(eoq_cost_df,non_eoq_cost_df)
+
+    return eoq_cost_df,non_eoq_cost_df,cost_merged_df
+
+def download(store_df,warehouse_df,dc_df,store_demand_df,warehouse_demand_df,dc_demand_df,warehouse_store_distribution,dc_warehouse_distribution,store_schedule_df,warehouse_schedule_df,eoq_cost_df,non_eoq_cost_df,cost_merged_df):
     store_df.to_excel(f"{monthly_demand_path}/store_aggregated_monthly_demand.xlsx", index=False, engine='openpyxl')
     store_demand_df.to_excel(f"{calculated_metrics_path}/store_monthly_metrics.xlsx",index=False,engine='openpyxl')
 
@@ -60,6 +67,7 @@ def download(store_df,warehouse_df,dc_df,store_demand_df,warehouse_demand_df,dc_
 
     eoq_cost_df.to_excel(f"{cost_path}/eoq_cost.xlsx",index=False,engine="openpyxl")
     non_eoq_cost_df.to_excel(f"{cost_path}/non_eoq_cost.xlsx",index=False,engine="openpyxl")
+    cost_merged_df.to_excel(f"{cost_path}/cost_merged.xlsx",index=False,engine="openpyxl")
 
 
 

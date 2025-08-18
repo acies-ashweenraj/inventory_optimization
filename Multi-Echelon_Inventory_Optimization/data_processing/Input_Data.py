@@ -6,7 +6,7 @@ def load_file_as_dataframe(file_path, date_col=None):
     ext = os.path.splitext(file_path)[-1].lower()
 
     try:
-       
+    
         reader = FileType.get_reader(ext)
         df = reader(file_path)
 
@@ -24,6 +24,9 @@ def load_file_as_dataframe(file_path, date_col=None):
                 print(f"Date column '{cleaned_date_col}' not found. Available columns: {df.columns.tolist()}")
 
         print(f"File loaded successfully with shape: {df.shape}")
+        df["DC"] = "DC_" + df["DC"].astype(str)
+        df["Warehouse"] = "Warehouse_" + df["Warehouse"].astype(str)
+        df["Store"] = "Store_" + df["Store"].astype(str)
         return df
 
     except Exception as e:

@@ -1,6 +1,5 @@
 import pandas as pd
 from operations import operations
-from Preassumptions import CODE_MAP,HOLDING_COST,LEAD_TIME,ORDERING_COST,Z_SCORE
 
 
 def dc_distribution(dc_df,warehouse_df):

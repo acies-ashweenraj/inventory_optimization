@@ -17,13 +17,14 @@ def common_schedule_func(df, echelon_type):
     else:
         raise ValueError("Invalid echelon_type. Use 'warehouse' or 'store'.")
 
-    ss_df = df.sort_values([echelon_col, "Year", "Month"]).reset_index(drop=True)
+    ss_df = df.sort_values([echelon_col, "Year", "Month","ItemStat_Item"]).reset_index(drop=True)
 
     for i in range(len(ss_df)):
         echelon_name = ss_df.loc[i, echelon_col]
         parent_name = ss_df.loc[i, parent_col]
         year = int(ss_df.loc[i, "Year"])
         month = int(ss_df.loc[i, "Month"])
+        SKU = str(ss_df.loc[i,"ItemStat_Item"])
 
         total_demand = ss_df.loc[i, demand_col]
         eoq = ss_df.loc[i, "monthly_eoq"]
@@ -45,6 +46,7 @@ def common_schedule_func(df, echelon_type):
                 "Year": year,
                 "Month": month,
                 "Date_Time": order_dates[j],
+                "SKU" : SKU,
                 "Quantity": ceil(eoq)
             }
             output.append(order)
@@ -57,6 +59,7 @@ def common_schedule_func(df, echelon_type):
                 "Year": year,
                 "Month": month,
                 "Date_Time": balance_order_date,
+                "SKU" : SKU,
                 "Quantity": ceil(balance_demand)
             }
             output.append(order)
