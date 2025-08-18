@@ -12,17 +12,7 @@ from server.Preassumptions import STORE_SCHEDULE,WAREHOUSE_SCHEDULE
 from server.config import input_path,monthly_demand_path,calculated_metrics_path,distribution_path,schedule_path,cost_path
 import pickle, os
 
-# SHARED_DIR = os.path.join("shared_data")
 
-# def run_meio():
-#     with open(os.path.join(SHARED_DIR, "demand_forecast.pkl"), "rb") as f:
-#         df_demand = pickle.load(f)
-
-#     with open(os.path.join(SHARED_DIR, "lead_time.pkl"), "rb") as f:
-#         df_lead = pickle.load(f)
-
-#     with open(os.path.join(SHARED_DIR, "node_data.pkl"), "rb") as f:
-#         df_nodes = pickle.load(f)
 
 def aggregate(df):
     store_df = aggregate_store_monthly(df, date_col='TimeWeek', value_col='Actual',sku_col="ItemStat_Item")
