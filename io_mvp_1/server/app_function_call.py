@@ -12,43 +12,14 @@ from server.Preassumptions import STORE_SCHEDULE,WAREHOUSE_SCHEDULE
 from server.config import input_path,monthly_demand_path,calculated_metrics_path,distribution_path,schedule_path,cost_path
 import pickle, os
 
-# SHARED_DIR = os.path.join("shared_data")
 
-# def run_meio():
-#     with open(os.path.join(SHARED_DIR, "demand_forecast.pkl"), "rb") as f:
-#         df_demand = pickle.load(f)
-
-#     with open(os.path.join(SHARED_DIR, "lead_time.pkl"), "rb") as f:
-#         df_lead = pickle.load(f)
-
-#     with open(os.path.join(SHARED_DIR, "node_data.pkl"), "rb") as f:
-#         df_nodes = pickle.load(f)
-
-from server.data_processing.Data_Aggregate import (
-    aggregate_store_monthly,
-    aggregate_warehouse_monthly,
-    aggregate_dc_monthly
-)
 
 def aggregate(df):
-    """
-    Aggregates data at Store, Warehouse, and DC levels.
-    Assumes df has at least: ['Order Date', 'Actual', 'ItemStat_Item', 'Store', 'Warehouse', 'DC']
-    """
+    store_df = aggregate_store_monthly(df, date_col='TimeWeek', value_col='Actual',sku_col="ItemStat_Item")
+    warehouse_df = aggregate_warehouse_monthly(df, date_col='TimeWeek', value_col='Actual',sku_col="ItemStat_Item")
+    dc_df = aggregate_dc_monthly(df, date_col='TimeWeek', value_col='Actual',sku_col="ItemStat_Item")
 
-    store_df = aggregate_store_monthly(
-        df, date_col="Order Date", value_col="Actual", sku_col="ItemStat_Item"
-    )
-    warehouse_df = aggregate_warehouse_monthly(
-        df, date_col="Order Date", value_col="Actual", sku_col="ItemStat_Item", warehouse_col="Warehouse"
-    )
-    dc_df = aggregate_dc_monthly(
-        df, date_col="Order Date", value_col="Actual", sku_col="ItemStat_Item", dc_col="DC"
-    )
-
-    return store_df, warehouse_df, dc_df
-
-
+    return store_df,warehouse_df,dc_df
 
 def calculate_metrics(store_df,warehouse_df,dc_df):
     store_demand_df=store_data(store_df)
@@ -98,9 +69,4 @@ def download(store_df,warehouse_df,dc_df,store_demand_df,warehouse_demand_df,dc_
     eoq_cost_df.to_excel(f"{cost_path}/eoq_cost.xlsx",index=False,engine="openpyxl")
     non_eoq_cost_df.to_excel(f"{cost_path}/non_eoq_cost.xlsx",index=False,engine="openpyxl")
     cost_merged_df.to_excel(f"{cost_path}/cost_merged.xlsx",index=False,engine="openpyxl")
-
-
-
-
-
 

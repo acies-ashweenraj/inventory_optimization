@@ -1,44 +1,26 @@
-import os
-import pandas as pd
-from server.app_function_call import aggregate
+from server.data_processing.Input_Data import load_file_as_dataframe
+from server.app_function_call import aggregate,calculate_metrics,distribute,schedule,download,cost
+from server.cost_comparison import eoq_cost,non_eoq_cost
+from .config import demand_path
+
 
 def run_meio_pipeline():
-    """
-    Run the MEIO pipeline using uploaded/shared data.
-    Ensures the right dataframe (Orders/Demand) is used for aggregation.
-    """
 
-    shared_dir = os.path.join(os.path.dirname(__file__), "..", "shared_data")
+    df = load_file_as_dataframe(demand_path)
 
-    # Priority: use processed merged data if available
-    merged_path = os.path.join(shared_dir, "merged_data.xlsx")
-    orders_path = os.path.join(shared_dir, "orders.xlsx")
+    store_df,warehouse_df,dc_df=aggregate(df)
+    
 
-    if os.path.exists(merged_path):
-        print("Loading merged data...")
-        df = pd.read_excel(merged_path)
+    store_demand_df,warehouse_demand_df,dc_demand_df=calculate_metrics(store_df,warehouse_df,dc_df)
 
-        # Ensure we have demand column
-        if "Actual" not in df.columns and "Order Quantity" in df.columns:
-            df = df.rename(columns={"Order Quantity": "Actual"})
-        if "Order Date" not in df.columns and "Date" in df.columns:
-            df = df.rename(columns={"Date": "Order Date"})
+    warehouse_store_distribution,dc_warehouse_distribution=distribute(dc_demand_df,warehouse_demand_df,store_demand_df)
 
-    elif os.path.exists(orders_path):
-        print("Loading orders data...")
-        df = pd.read_excel(orders_path)
+    # store_schedule_df,warehouse_schedule_df=schedule(store_demand_df,warehouse_demand_df)
+    store_schedule_df,warehouse_schedule_df=schedule(warehouse_store_distribution,dc_warehouse_distribution)
 
-        # Rename columns to match aggregation requirements
-        rename_map = {}
-        if "Order Quantity" in df.columns:
-            rename_map["Order Quantity"] = "Actual"
-        if "Order Date" in df.columns:
-            rename_map["Order Date"] = "Order Date"  # keep same but ensure existence
-        if rename_map:
-            df = df.rename(columns=rename_map)
-    else:
-        raise FileNotFoundError("No valid Orders or Merged data found in shared_data/")
 
-    # Run aggregations
-    store_df, warehouse_df, dc_df = aggregate(df)
-    return store_df, warehouse_df, dc_df
+
+    eoq_cost_df,non_eoq_cost_df,cost_merged_df = cost(store_schedule_df,store_demand_df,warehouse_store_distribution)
+
+
+    download(store_df,warehouse_df,dc_df,store_demand_df,warehouse_demand_df,dc_demand_df,warehouse_store_distribution,dc_warehouse_distribution,store_schedule_df,warehouse_schedule_df,eoq_cost_df,non_eoq_cost_df,cost_merged_df)

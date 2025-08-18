@@ -1,6 +1,6 @@
 from pathlib import Path
 
-input_path = r"D:\Ashween\Desktop\meio\inventory_optimization\io_mvp_1\server\data\Multi_Sku.xlsx"
+input_path = r"\data\Multi_Sku.xlsx"
 demand_path = r"D:\Ashween\Desktop\meio\inventory_optimization\io_mvp_1\server\data\Multi_Sku.xlsx"
 lead_path = r"D:\Ashween\Desktop\meio\inventory_optimization\io_mvp_1\server\data\Leadtime_MultiSKU.xlsx"
 cost_path = r"D:\Ashween\Desktop\meio\inventory_optimization\io_mvp_1\server\data\Node_Costs.xlsx"
