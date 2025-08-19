@@ -1,7 +1,8 @@
 from server.data_processing.Input_Data import load_file_as_dataframe
 from server.app_function_call import aggregate,calculate_metrics,distribute,schedule,download,cost
-from server.cost_comparison import eoq_cost,non_eoq_cost
+from server.test_multi_costs import run_multi_level_cost_comparison
 from .config import demand_path
+
 
 
 def run_meio_pipeline():
@@ -19,7 +20,7 @@ def run_meio_pipeline():
     store_schedule_df,warehouse_schedule_df=schedule(warehouse_store_distribution,dc_warehouse_distribution)
 
 
-
+    cost_comparision = run_multi_level_cost_comparison()
     eoq_cost_df,non_eoq_cost_df,cost_merged_df = cost(store_schedule_df,store_demand_df,warehouse_store_distribution)
 
 

@@ -1,197 +1,361 @@
-# ui/pages/4_Cost_Comparison.py
 import streamlit as st
 import pandas as pd
-import plotly.express as px
+import numpy as np
 import os
+import io
+import plotly.express as px
+import plotly.graph_objects as go
 
-from server.cost_comparison.prepare_dashboard import load_cost_dashboard_data
-from server.config import cost_path
-
-st.set_page_config(page_title="MEIO vs Non-MEIO Cost Comparison", layout="wide")
-st.title("📊 MEIO vs Non-MEIO Cost Comparison")
-
-# ----------------------------
-# Load
-# ----------------------------
-with st.spinner("Loading dashboard data..."):
-    df = load_cost_dashboard_data()
-
-# Preserve only SKUs that exist (already filtered in backend, but double-safety)
-df["SKU"] = df["SKU"].astype(str).str.upper()
-
-# Build a robust total for UI selection
-candidate_costs = [c for c in ["HoldingCost","OrderingCost","TransportCost","InventoryValue","TotalCost"] if c in df.columns]
-if "TotalCost" not in candidate_costs:
-    df["TotalCost"] = df[[c for c in candidate_costs if c != "TotalCost"]].select_dtypes(include="number").sum(axis=1)
-    candidate_costs = ["TotalCost"] + [c for c in candidate_costs if c != "TotalCost"]
-
-# Derive time if missing
-if "Year" in df.columns and "Month" in df.columns and "YearMonth" not in df.columns:
-    df["YearMonth"] = df["Year"].astype(str) + "-" + df["Month"].astype(str).str.zfill(2)
-
-# Harmonize echelon column for UI expectations
-if "Echelon_Type" not in df.columns and "Echelon" in df.columns:
-    df["Echelon_Type"] = df["Echelon"]
-
-# ----------------------------
-# Sidebar Filters
-# ----------------------------
-st.sidebar.header("🔍 Filters")
-
-# Cost metric picker
-metric = st.sidebar.selectbox(
-    "Cost Metric",
-    options=candidate_costs,
-    index=0
+# ======================================================
+# Page Config
+# ======================================================
+st.set_page_config(
+    page_title="MEIO vs Non-MEIO Cost Comparison",
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
-# Policy
-policies = sorted(df["Policy"].dropna().unique().tolist())
-sel_policies = st.sidebar.multiselect("Policy", policies, default=policies)
+# ======================================================
+# Paths / Constants
+# ======================================================
+# Default backend output location (adjust if your structure differs)
+CURRENT_DIR = os.path.dirname(__file__)
+DEFAULT_DATA_PATH = os.path.abspath(
+    os.path.join(CURRENT_DIR, "..", "..", "server", "multi_level_cost_comparison.xlsx")
+)
 
-# Echelon
-if "Echelon_Type" in df.columns:
-    echelons = sorted(df["Echelon_Type"].dropna().unique().tolist())
-    sel_echelon = st.sidebar.multiselect("Echelon", echelons, default=echelons)
-else:
-    sel_echelon = []
+NUMERIC_COLS = [
+    "Demand",
+    "Product_Cost",
+    "Ordering_Cost",
+    "Holding_Cost_per_unit",
+    "EOQ",
+    "EOQ_Ordering_Cost",
+    "EOQ_Holding_Cost",
+    "EOQ_Total_Cost",
+    "NonEOQ_Ordering_Cost",
+    "NonEOQ_Holding_Cost",
+    "NonEOQ_Total_Cost",
+    "Cost_Savings",
+]
+TOLERANCE = 0.01  # ₹0.01 tolerance for floating point sums
 
-# Nodes
-if "Node" in df.columns:
-    nodes = sorted(df["Node"].dropna().unique().tolist())
-    sel_nodes = st.sidebar.multiselect("Nodes", nodes, default=nodes)
-else:
-    sel_nodes = []
 
-# SKUs
-skus = sorted(df["SKU"].dropna().unique().tolist())
-sel_skus = st.sidebar.multiselect("SKUs", skus, default=skus)
+# ======================================================
+# Utilities
+# ======================================================
+@st.cache_data
+def load_data(default_path: str) -> pd.DataFrame | None:
+    """Load cost comparison data from default path; fall back to None if missing."""
+    if os.path.exists(default_path):
+        try:
+            df = pd.read_excel(default_path)
+            return df
+        except Exception as e:
+            st.error(f"Failed to read default file at {default_path}:\n{e}")
+            return None
+    return None
 
-# Time range (YearMonth)
-if "YearMonth" in df.columns:
-    ym_sorted = sorted(df["YearMonth"].dropna().unique().tolist())
-    sel_ym = st.sidebar.multiselect("Year-Month", ym_sorted, default=ym_sorted)
-else:
-    sel_ym = []
+
+def ensure_types(df: pd.DataFrame) -> pd.DataFrame:
+    """Cast dtypes for safety."""
+    df = df.copy()
+    if "SKU" in df.columns:
+        df["SKU"] = df["SKU"].astype(str)
+    if "Echelon" in df.columns:
+        df["Echelon"] = df["Echelon"].astype(str)
+    for c in NUMERIC_COLS:
+        if c in df.columns:
+            df[c] = pd.to_numeric(df[c], errors="coerce")
+    return df
+
+
+def recompute_costs(df: pd.DataFrame) -> pd.DataFrame:
+    """Recompute totals and savings to guarantee correctness."""
+    df = df.copy()
+
+    # Recompute totals from components
+    df["EOQ_Total_Cost_calc"] = df["EOQ_Ordering_Cost"].fillna(0) + df["EOQ_Holding_Cost"].fillna(0)
+    df["NonEOQ_Total_Cost_calc"] = df["NonEOQ_Ordering_Cost"].fillna(0) + df["NonEOQ_Holding_Cost"].fillna(0)
+
+    # If provided columns deviate beyond tolerance, replace with computed
+    def within_tol(a, b, tol):
+        mask = a.notna() & b.notna()
+        out = pd.Series(False, index=a.index)
+        out[mask] = (a[mask] - b[mask]).abs() <= tol
+        return out.fillna(False)
+
+    eoq_ok = within_tol(df["EOQ_Total_Cost"], df["EOQ_Total_Cost_calc"], TOLERANCE) if "EOQ_Total_Cost" in df else pd.Series(False, index=df.index)
+    noneoq_ok = within_tol(df["NonEOQ_Total_Cost"], df["NonEOQ_Total_Cost_calc"], TOLERANCE) if "NonEOQ_Total_Cost" in df else pd.Series(False, index=df.index)
+
+    # Replace values where needed (or if missing)
+    df["EOQ_Total_Cost"] = np.where(eoq_ok, df["EOQ_Total_Cost"], df["EOQ_Total_Cost_calc"])
+    df["NonEOQ_Total_Cost"] = np.where(noneoq_ok, df["NonEOQ_Total_Cost"], df["NonEOQ_Total_Cost_calc"])
+
+    # Recompute savings from totals
+    df["Cost_Savings"] = df["NonEOQ_Total_Cost"].fillna(0) - df["EOQ_Total_Cost"].fillna(0)
+
+    # Savings Rate (guard divide-by-zero)
+    denom = df["NonEOQ_Total_Cost"].replace(0, np.nan)
+    df["Savings_Rate"] = (df["Cost_Savings"] / denom).fillna(0.0)
+
+    # Round for neat display (no logic loss beyond a paisa)
+    for c in ["EOQ_Total_Cost", "NonEOQ_Total_Cost", "Cost_Savings"]:
+        df[c] = df[c].round(2)
+    df["Savings_Rate"] = df["Savings_Rate"].round(6)
+
+    return df.drop(columns=["EOQ_Total_Cost_calc", "NonEOQ_Total_Cost_calc"], errors="ignore")
+
+
+def agg_by_echelon(df: pd.DataFrame) -> pd.DataFrame:
+    g = df.groupby("Echelon", as_index=False).agg(
+        EOQ_Total_Cost=("EOQ_Total_Cost", "sum"),
+        NonEOQ_Total_Cost=("NonEOQ_Total_Cost", "sum"),
+        Cost_Savings=("Cost_Savings", "sum"),
+        Avg_EOQ=("EOQ", "mean"),
+        SKUs=("SKU", "nunique"),
+    )
+    g["Savings_Rate"] = (g["Cost_Savings"] / g["NonEOQ_Total_Cost"].replace(0, np.nan)).fillna(0.0)
+    return g.sort_values("Cost_Savings", ascending=False)
+
+
+def agg_by_sku(df: pd.DataFrame) -> pd.DataFrame:
+    g = df.groupby("SKU", as_index=False).agg(
+        EOQ_Total_Cost=("EOQ_Total_Cost", "sum"),
+        NonEOQ_Total_Cost=("NonEOQ_Total_Cost", "sum"),
+        Cost_Savings=("Cost_Savings", "sum"),
+        Avg_EOQ=("EOQ", "mean"),
+        Echelons=("Echelon", "nunique"),
+    )
+    g["Savings_Rate"] = (g["Cost_Savings"] / g["NonEOQ_Total_Cost"].replace(0, np.nan)).fillna(0.0)
+    return g.sort_values(["Cost_Savings", "Savings_Rate"], ascending=[False, False])
+
+
+def fmt_money(v: float) -> str:
+    return f"₹{v:,.2f}"
+
+
+# ======================================================
+# Styles
+# ======================================================
+CSS = """
+<style>
+.container-block {margin-bottom: 8px;}
+
+.kpi-row {display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 8px 0 18px;}
+.kpi-card {border:1px solid rgba(255,255,255,0.10); background:rgba(255,255,255,0.04); padding:14px 16px; border-radius:14px;}
+.kpi-title {font-size:0.92rem; color:rgba(255,255,255,0.65); margin-bottom:6px;}
+.kpi-value {font-size:1.45rem; font-weight:700; line-height:1.2;}
+.kpi-sub {font-size:0.85rem; color:rgba(255,255,255,0.60); margin-top:6px;}
+
+.filter-row {display:grid; grid-template-columns: 2fr 4fr 1fr 1fr; gap: 10px; align-items:end; margin-top:6px;}
+.filter-box {border:1px solid rgba(255,255,255,0.10); border-radius:12px; padding:10px 12px;}
+
+table {font-size: 0.92rem;}
+</style>
+"""
+st.markdown(CSS, unsafe_allow_html=True)
+
+
+def kpi_card(title: str, value: str, sub: str = ""):
+    st.markdown(
+        f"""
+        <div class="kpi-card">
+          <div class="kpi-title">{title}</div>
+          <div class="kpi-value">{value}</div>
+          {'<div class="kpi-sub">'+sub+'</div>' if sub else ''}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+# ======================================================
+# Data Ingress
+# ======================================================
+st.title("Inventory Cost Comparison Dashboard")
+
+df = load_data(DEFAULT_DATA_PATH)
+
+# Optional fallback: let user upload if backend file is missing
+if df is None:
+    uploaded = st.file_uploader("Upload 'multi_level_cost_comparison.xlsx'", type=["xlsx"])
+    if uploaded:
+        df = pd.read_excel(uploaded)
+    else:
+        st.stop()
+
+# Prepare + recompute
+df = ensure_types(df)
+df = recompute_costs(df)
+
+# ======================================================
+# Top Filters
+# ======================================================
+st.markdown("#### Filters")
+
+# Build options
+echelon_options = sorted(df["Echelon"].dropna().unique())
+sku_options = sorted(df["SKU"].dropna().unique())
+
+# Session defaults for select-all behavior
+if "select_all_skus" not in st.session_state:
+    st.session_state.select_all_skus = True
+
+# Filter row (no sidebar)
+with st.container():
+    col_ech, col_sku, col_topn, col_reset = st.columns([2, 4, 1, 1])
+    with col_ech:
+        sel_echelons = st.multiselect(
+            "Echelon",
+            options=echelon_options,
+            default=echelon_options,
+            placeholder="Select echelons",
+        )
+    with col_sku:
+        sel_all = st.checkbox("Select all SKUs", value=st.session_state.select_all_skus, key="select_all_skus")
+        sel_skus = st.multiselect(
+            "SKU(s)",
+            options=sku_options,
+            default=sku_options if sel_all else [],
+            placeholder="Select SKUs"
+        )
+    with col_topn:
+        top_n = st.number_input("Top N (SKUs by savings)", min_value=5, max_value=50, value=20, step=1)
+    with col_reset:
+        if st.button("Reset Filters", use_container_width=True):
+            st.session_state.select_all_skus = True
+            st.rerun()
 
 # Apply filters
-mask = df["Policy"].isin(sel_policies)
-if sel_echelon:
-    mask &= df["Echelon_Type"].isin(sel_echelon)
-if sel_nodes:
-    mask &= df["Node"].isin(sel_nodes)
-if sel_skus:
-    mask &= df["SKU"].isin(sel_skus)
-if sel_ym:
-    mask &= df["YearMonth"].isin(sel_ym)
+filt = (df["Echelon"].isin(sel_echelons)) & (df["SKU"].isin(sel_skus))
+fdf = df.loc[filt].copy()
 
-f = df[mask].copy()
+if fdf.empty:
+    st.warning("No data for the current filters.")
+    st.stop()
 
-# ----------------------------
-# KPIs
-# ----------------------------
-st.subheader("📌 KPI Summary")
-
-tot_meio = f.loc[f["Policy"]=="MEIO", metric].sum()
-tot_non  = f.loc[f["Policy"]=="Non-MEIO", metric].sum()
-savings  = tot_non - tot_meio
-savings_pct = (savings / tot_non * 100) if tot_non else 0.0
-
-c1, c2, c3, c4 = st.columns(4)
-c1.metric(f"Total {metric} (MEIO)", f"{tot_meio:,.2f}")
-c2.metric(f"Total {metric} (Non-MEIO)", f"{tot_non:,.2f}")
-c3.metric("Absolute Savings", f"{savings:,.2f}")
-c4.metric("Savings %", f"{savings_pct:,.2f}%")
-
-# ----------------------------
-# Charts
-# ----------------------------
 st.markdown("---")
-st.subheader(f"🏢 Echelon-wise {metric} (Grouped)")
 
-if "Echelon_Type" in f.columns:
-    g_ech = f.groupby(["Echelon_Type","Policy"], as_index=False)[metric].sum()
-    fig1 = px.bar(g_ech, x="Echelon_Type", y=metric, color="Policy", barmode="group")
-    st.plotly_chart(fig1, use_container_width=True)
+# ======================================================
+# KPIs
+# ======================================================
+total_eoq = float(fdf["EOQ_Total_Cost"].sum())
+total_noneoq = float(fdf["NonEOQ_Total_Cost"].sum())
+total_sav = float(fdf["Cost_Savings"].sum())
+avg_eoq = float(fdf["EOQ"].mean()) if "EOQ" in fdf.columns else 0.0
+sku_count = int(fdf["SKU"].nunique())
 
-st.subheader(f"🎯 SKU-wise {metric} (Top 20 by Non-MEIO)")
-g_sku = f.groupby(["SKU","Policy"], as_index=False)[metric].sum()
-# reindex to show top by Non-MEIO for clear comparison
-top_skus = (
-    g_sku[g_sku["Policy"]=="Non-MEIO"]
-    .nlargest(20, metric)["SKU"]
-    .tolist()
+savings_rate = (total_sav / total_noneoq) if total_noneoq > 0 else 0.0
+
+st.markdown('<div class="kpi-row">', unsafe_allow_html=True)
+kpi_card("Total Cost Savings", fmt_money(total_sav), f"{savings_rate:.2%} vs Non‑EOQ")
+kpi_card("Total EOQ Cost", fmt_money(total_eoq))
+kpi_card("Total Non‑EOQ Cost", fmt_money(total_noneoq))
+kpi_card("Average EOQ Order Size", f"{avg_eoq:,.2f} units")
+kpi_card("Number of SKUs", f"{sku_count}")
+st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown("---")
+
+# ======================================================
+# Charts
+# ======================================================
+st.subheader("Visual Analysis")
+
+# 1) EOQ vs Non-EOQ Total Cost by SKU (grouped)
+st.markdown("**EOQ vs Non‑EOQ Total Cost by SKU (grouped)**")
+fig1 = px.bar(
+    fdf,
+    x="SKU",
+    y=["EOQ_Total_Cost", "NonEOQ_Total_Cost"],
+    barmode="group",
+    hover_data=["Echelon"],
+    title="EOQ vs Non‑EOQ Total Cost by SKU (split by Echelon in hover)",
 )
-g_sku_top = g_sku[g_sku["SKU"].isin(top_skus)]
-fig2 = px.bar(g_sku_top, x="SKU", y=metric, color="Policy", barmode="group")
-fig2.update_layout(xaxis={"type": "category"})
+fig1.update_layout(xaxis_title="SKU", yaxis_title="Total Cost (₹)")
+st.plotly_chart(fig1, use_container_width=True)
+
+# 2) Total Savings by Echelon
+st.markdown("**Total Cost Savings by Echelon**")
+by_ech = agg_by_echelon(fdf)
+fig2 = px.bar(
+    by_ech,
+    x="Echelon",
+    y="Cost_Savings",
+    text_auto=".2s",
+    title="Total Cost Savings by Echelon",
+)
+fig2.update_layout(xaxis_title="Echelon", yaxis_title="Cost Savings (₹)")
 st.plotly_chart(fig2, use_container_width=True)
 
-if "YearMonth" in f.columns:
-    st.subheader(f"⏳ Monthly Trend of {metric}")
-    g_time = f.groupby(["YearMonth","Policy"], as_index=False)[metric].sum().sort_values("YearMonth")
-    fig3 = px.line(g_time, x="YearMonth", y=metric, color="Policy", markers=True)
-    st.plotly_chart(fig3, use_container_width=True)
-
-# Savings treemap by Echelon → SKU
-st.subheader("🧭 Savings Treemap (Non-MEIO − MEIO)")
-# build savings at SKU level within echelon
-piv = (
-    f.pivot_table(index=["Echelon_Type","SKU"], columns="Policy", values=metric, aggfunc="sum")
-    .fillna(0.0)
-    .reset_index()
+# 3) Top-N SKUs by Cost Savings (horizontal)
+st.markdown(f"**Top {top_n} SKUs by Cost Savings**")
+by_sku = agg_by_sku(fdf)
+top_sku = by_sku.head(int(top_n))
+fig3 = px.bar(
+    top_sku.sort_values("Cost_Savings"),
+    x="Cost_Savings",
+    y="SKU",
+    orientation="h",
+    hover_data={"Savings_Rate": ":.2%"},
+    text_auto=".2s",
+    title=f"Top {len(top_sku)} SKUs by Absolute Cost Savings",
 )
-if "MEIO" in piv.columns and "Non-MEIO" in piv.columns:
-    piv["Savings"] = piv["Non-MEIO"] - piv["MEIO"]
-    fig4 = px.treemap(
-        piv,
-        path=["Echelon_Type", "SKU"],
-        values="Savings",
-        color="Savings",
-        color_continuous_scale="Tealgrn",
-        title="Savings by Echelon and SKU"
-    )
-    st.plotly_chart(fig4, use_container_width=True)
+fig3.update_layout(xaxis_title="Cost Savings (₹)", yaxis_title="SKU")
+st.plotly_chart(fig3, use_container_width=True)
 
-# Waterfall of component savings (if components exist)
-comp_cols = [c for c in ["HoldingCost","OrderingCost","TransportCost"] if c in f.columns]
-if comp_cols:
-    st.subheader("🏗️ Savings Waterfall by Components")
-    comp = {}
-    for c in comp_cols:
-        comp[c] = f.loc[f["Policy"]=="Non-MEIO", c].sum() - f.loc[f["Policy"]=="MEIO", c].sum()
-    wf = pd.DataFrame({"Component": list(comp.keys()), "Savings": list(comp.values())})
-    wf_sorted = wf.sort_values("Savings", ascending=False)
-    # build waterfall-like bar
-    fig5 = px.bar(wf_sorted, x="Component", y="Savings", color="Savings", color_continuous_scale="Bluered")
-    st.plotly_chart(fig5, use_container_width=True)
+# 4) Waterfall: Non-EOQ Total → EOQ Total via echelon savings
+st.markdown("**Cost Bridge (Waterfall): Non‑EOQ → EOQ by Echelon savings**")
+echelon_order = by_ech.sort_values("Cost_Savings", ascending=False)["Echelon"].tolist()
+wf = go.Figure(go.Waterfall(
+    name="Savings",
+    orientation="h",
+    measure=["absolute"] + ["relative"] * len(echelon_order) + ["total"],
+    x=[total_noneoq] + (-by_ech.set_index("Echelon").loc[echelon_order]["Cost_Savings"]).tolist() + [total_eoq],
+    y=["Non‑EOQ Total"] + echelon_order + ["EOQ Total"],
+))
+wf.update_layout(title="Waterfall: Contribution of Echelon Savings", xaxis_title="₹ Amount")
+st.plotly_chart(wf, use_container_width=True)
 
-# Optional: Node map if you have geo columns
-if {"Latitude","Longitude"}.issubset(f.columns):
-    st.subheader("🗺️ Node Savings Map")
-    # aggregate savings per node
-    pn = (
-        f.pivot_table(index=["Node","Latitude","Longitude"], columns="Policy", values=metric, aggfunc="sum")
-        .fillna(0.0)
-        .reset_index()
-    )
-    if "MEIO" in pn.columns and "Non-MEIO" in pn.columns:
-        pn["Savings"] = pn["Non-MEIO"] - pn["MEIO"]
-        fig6 = px.scatter_mapbox(
-            pn, lat="Latitude", lon="Longitude", size="Savings", color="Savings",
-            hover_name="Node", mapbox_style="carto-positron", zoom=1, height=500
-        )
-        st.plotly_chart(fig6, use_container_width=True)
-
-# ----------------------------
-# Table & Download
-# ----------------------------
 st.markdown("---")
-st.subheader("📑 Filtered Detailed Data")
-st.dataframe(f, use_container_width=True)
 
-dl_name = f"dashboard_costs_filtered_{metric}.csv"
-st.download_button("⬇️ Download filtered CSV", data=f.to_csv(index=False).encode("utf-8"), file_name=dl_name, mime="text/csv")
+# ======================================================
+# Summaries & Downloads
+# ======================================================
+st.subheader("Summaries")
 
-# Quick link to the full prepared file
-st.caption(f"Source: {os.path.join(cost_path, 'dashboard_costs.xlsx')}")
+c_sum1, c_sum2 = st.columns(2)
+with c_sum1:
+    st.markdown("**Summary by Echelon**")
+    st.dataframe(by_ech, use_container_width=True)
+    csv1 = by_ech.to_csv(index=False).encode("utf-8")
+    st.download_button("Download Echelon Summary (CSV)", data=csv1, file_name="summary_by_echelon.csv", mime="text/csv")
+
+with c_sum2:
+    st.markdown("**Summary by SKU**")
+    st.dataframe(by_sku, use_container_width=True)
+    csv2 = by_sku.to_csv(index=False).encode("utf-8")
+    st.download_button("Download SKU Summary (CSV)", data=csv2, file_name="summary_by_sku.csv", mime="text/csv")
+
+st.markdown("---")
+
+st.subheader("Filtered Rows")
+st.dataframe(fdf, use_container_width=True)
+csv3 = fdf.to_csv(index=False).encode("utf-8")
+st.download_button("Download Filtered Data (CSV)", data=csv3, file_name="filtered_cost_comparison.csv", mime="text/csv")
+
+# ======================================================
+# Optional Integrity Details (collapsible)
+# ======================================================
+with st.expander("Data Integrity Checks (optional)"):
+    # Recompute one more time to show drift if any (should be zero after recompute)
+    check = fdf.copy()
+    check["EOQ_calc"] = check["EOQ_Ordering_Cost"].fillna(0) + check["EOQ_Holding_Cost"].fillna(0)
+    check["NonEOQ_calc"] = check["NonEOQ_Ordering_Cost"].fillna(0) + check["NonEOQ_Holding_Cost"].fillna(0)
+    e_mis = (check["EOQ_Total_Cost"] - check["EOQ_calc"]).abs() > TOLERANCE
+    n_mis = (check["NonEOQ_Total_Cost"] - check["NonEOQ_calc"]).abs() > TOLERANCE
+    st.write({
+        "EOQ_Total_Cost mismatches (>₹0.01)": int(e_mis.sum()),
+        "NonEOQ_Total_Cost mismatches (>₹0.01)": int(n_mis.sum()),
+    })
