@@ -1,7 +1,6 @@
 import os
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
 
 # --- Paths ---
 BASE_DIR = os.path.dirname(__file__)
@@ -22,21 +21,10 @@ def calculate_eoq(demand, ordering_cost, holding_cost):
         return np.sqrt((2 * demand * ordering_cost) / holding_cost)
     return 0
 
-# --- Generate monthly dates ---
-def generate_monthly_dates(year=2025):
-    return [datetime(year, m, 1) for m in range(1, 13)]
+# --- Compute cost summary ---
+def compute_cost_summary(df, echelon_col, demand_col, sku_col="ItemStat_Item", demand_horizon="monthly"):
+    records = []
 
-# --- Generate EOQ spaced dates ---
-def generate_eoq_dates(num_orders, year=2025):
-    if num_orders <= 0:
-        return []
-    start = datetime(year, 1, 1)
-    interval = 365 / num_orders
-    return [(start + timedelta(days=int(i * interval))) for i in range(num_orders)]
-
-# --- Build order schedule ---
-def compute_schedule(df, echelon_col, demand_col, sku_col="ItemStat_Item", demand_horizon="monthly"):
-    schedule = []
     for _, row in df.iterrows():
         sku = row[sku_col]
         demand = row[demand_col]
@@ -62,60 +50,63 @@ def compute_schedule(df, echelon_col, demand_col, sku_col="ItemStat_Item", deman
             continue
         ordering_cost = node_row["Ordering Cost"].values[0]
         holding_cost_rate = node_row["Holding Cost"].values[0]
-        holding_cost = holding_cost_rate * prod_cost
+        holding_cost = holding_cost_rate * prod_cost  # annual holding cost per unit
 
-        # =========================
-        # Non-MEIO: monthly orders
-        # =========================
-        monthly_demand = annual_demand / 12
-        for d in generate_monthly_dates():
-            hc = (monthly_demand / 2) * holding_cost
-            total_cost = ordering_cost + hc
-            schedule.append({
-                "SKU": sku,
-                "Echelon": echelon,
-                "Policy": "Non-MEIO",
-                "Order_Date": d.strftime("%Y-%m-%d"),
-                "Order_Qty": round(monthly_demand, 2),
-                "Ordering_Cost": round(ordering_cost, 2),
-                "Holding_Cost": round(hc, 2),
-                "Total_Cost": round(total_cost, 2)
-            })
-
-        # =========================
-        # MEIO: EOQ-based orders
-        # =========================
+        # =======================
+        # EOQ Policy
+        # =======================
         eoq = calculate_eoq(annual_demand, ordering_cost, holding_cost)
-        num_orders = int(round(annual_demand / eoq)) if eoq > 0 else 0
-        for d in generate_eoq_dates(num_orders):
-            hc = (eoq / 2) * holding_cost
-            total_cost = ordering_cost + hc
-            schedule.append({
-                "SKU": sku,
-                "Echelon": echelon,
-                "Policy": "EOQ",
-                "Order_Date": d.strftime("%Y-%m-%d"),
-                "Order_Qty": round(eoq, 2),
-                "Ordering_Cost": round(ordering_cost, 2),
-                "Holding_Cost": round(hc, 2),
-                "Total_Cost": round(total_cost, 2)
-            })
+        num_orders_eoq = annual_demand / eoq if eoq > 0 else 0
+        eoq_ordering_cost = num_orders_eoq * ordering_cost
+        eoq_holding_cost = (eoq / 2) * holding_cost
+        eoq_total = eoq_ordering_cost + eoq_holding_cost
 
-    return pd.DataFrame(schedule)
+        # =======================
+        # Non-MEIO (monthly orders)
+        # =======================
+        q_non = annual_demand / 12  # order qty each month
+        non_ordering_cost = 12 * ordering_cost
+        non_holding_cost = (q_non / 2) * holding_cost * 12 / 12  # average inventory * H
+        non_total = non_ordering_cost + non_holding_cost
+
+        # =======================
+        # Record
+        # =======================
+        records.append({
+            "SKU": sku,
+            "Echelon": echelon,
+            "Demand": annual_demand,
+            "Product_Cost": prod_cost,
+            "Ordering_Cost": ordering_cost,
+            "Holding_Cost_per_unit": holding_cost,
+            "EOQ": round(eoq, 2),
+            "EOQ_Ordering_Cost": round(eoq_ordering_cost, 2),
+            "EOQ_Holding_Cost": round(eoq_holding_cost, 2),
+            "EOQ_Total_Cost": round(eoq_total, 2),
+            "NonEOQ_Ordering_Cost": round(non_ordering_cost, 2),
+            "NonEOQ_Holding_Cost": round(non_holding_cost, 2),
+            "NonEOQ_Total_Cost": round(non_total, 2),
+            "Cost_Savings": round(non_total - eoq_total, 2)
+        })
+
+    return pd.DataFrame(records)
 
 # --- Run for DC → Warehouse ---
-dc_schedule = compute_schedule(dc_warehouse_dist, echelon_col="Warehouse", demand_col="Warehouse_Monthly_Demand", demand_horizon="monthly")
+dc_summary = compute_cost_summary(dc_warehouse_dist, echelon_col="Warehouse", demand_col="Warehouse_Monthly_Demand", demand_horizon="monthly")
 
 # --- Run for Warehouse → Store ---
-store_schedule = compute_schedule(warehouse_store_dist, echelon_col="Store", demand_col="store_total_stock", demand_horizon="annual")
+store_summary = compute_cost_summary(warehouse_store_dist, echelon_col="Store", demand_col="store_total_stock", demand_horizon="annual")
 
-# --- Combine ---
-all_schedule = pd.concat([dc_schedule, store_schedule], ignore_index=True)
+# --- Combine summaries ---
+all_summary = pd.concat([dc_summary, store_summary], ignore_index=True)
 
-print("\n--- Order Schedule (Sample) ---")
-print(all_schedule.head(15).to_markdown(index=False))
+# --- Deduplicate (SKU + Echelon) ---
+all_summary = all_summary.groupby(["SKU", "Echelon"], as_index=False).first()
+
+print("\n--- Cost Summary (Sample) ---")
+print(all_summary.head(10).to_markdown(index=False))
 
 # --- Save Output ---
-OUTPUT_PATH = os.path.join(BASE_DIR, "multi_level_cost_comparison_schedule.xlsx")
-all_schedule.to_excel(OUTPUT_PATH, index=False)
-print(f"\n✅ Order schedule with dates saved to {OUTPUT_PATH}")
+OUTPUT_PATH = os.path.join(BASE_DIR, "multi_level_cost_summary.xlsx")
+all_summary.to_excel(OUTPUT_PATH, index=False)
+print(f"\n✅ Cost summary saved to {OUTPUT_PATH}")
