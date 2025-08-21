@@ -88,17 +88,17 @@ st.markdown("""
 <style>
 .kpi-row {display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 8px 0 18px;}
 .kpi-card {
-    border:1px solid rgba(255,255,255,0.15);
-    background:rgba(30,30,30,0.7);
-    padding:12px;
-    border-radius:10px;
-    box-shadow:0 2px 4px rgba(0,0,0,0.3);
+    border: 1px solid var(--card-border);
+    background: var(--card-bg);
+    padding: 12px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     transition: all 0.2s ease-in-out;
 }
-.kpi-card:hover {background:rgba(60,60,60,0.85);}
-.kpi-title {font-size:0.8rem; color:rgba(255,255,255,0.65);}
-.kpi-value {font-size:1.2rem; font-weight:700; line-height:1.2;}
-.kpi-sub {font-size:0.75rem; color:rgba(255,255,255,0.55);}
+.kpi-title {font-size:0.8rem; color: var(--text-secondary);}
+.kpi-value {font-size:1.2rem; font-weight:700; color: var(--text-primary);}
+.kpi-sub {font-size:0.75rem; color: var(--text-secondary);}
+
 </style>
 """, unsafe_allow_html=True)
 

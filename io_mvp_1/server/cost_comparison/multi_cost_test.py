@@ -14,6 +14,9 @@ dc_warehouse_dist = pd.read_excel(os.path.join(UI_DIST_DIR, "dc_warehouse_distri
 warehouse_store_dist = pd.read_excel(os.path.join(UI_DIST_DIR, "warehouse_store_distribution_df.xlsx"))
 
 print("✅ Data loaded")
+print("DC-Warehouse columns:", dc_warehouse_dist.columns.tolist())
+print("Warehouse-Store columns:", warehouse_store_dist.columns.tolist())
+
 
 # --- EOQ formula ---
 def calculate_eoq(demand, ordering_cost, holding_cost):
@@ -66,13 +69,26 @@ def compute_cost_summary(df, echelon_col, demand_col, sku_col="ItemStat_Item", d
         # =======================
         q_non = annual_demand / 12  # order qty each month
         non_ordering_cost = 12 * ordering_cost
-        non_holding_cost = (q_non / 2) * holding_cost * 12 / 12  # average inventory * H
+        non_holding_cost = (q_non / 2) * holding_cost
         non_total = non_ordering_cost + non_holding_cost
+
+        # =======================
+        # Date handling
+        # =======================
+        year = row["Year"] if "Year" in df.columns else None
+        month = row["Month"] if "Month" in df.columns else None
+        if pd.notna(year) and pd.notna(month):
+            date = pd.to_datetime(f"{int(year)}-{int(month)}-01")
+        else:
+            date = None
 
         # =======================
         # Record
         # =======================
         records.append({
+            "Year": year,
+            "Month": month,
+            "Date": date,
             "SKU": sku,
             "Echelon": echelon,
             "Demand": annual_demand,
@@ -92,21 +108,34 @@ def compute_cost_summary(df, echelon_col, demand_col, sku_col="ItemStat_Item", d
     return pd.DataFrame(records)
 
 # --- Run for DC → Warehouse ---
-dc_summary = compute_cost_summary(dc_warehouse_dist, echelon_col="Warehouse", demand_col="Warehouse_Monthly_Demand", demand_horizon="monthly")
+dc_summary = compute_cost_summary(
+    dc_warehouse_dist,
+    echelon_col="Warehouse",
+    demand_col="Warehouse_Monthly_Demand",
+    demand_horizon="monthly"
+)
 
 # --- Run for Warehouse → Store ---
-store_summary = compute_cost_summary(warehouse_store_dist, echelon_col="Store", demand_col="store_total_stock", demand_horizon="annual")
+store_summary = compute_cost_summary(
+    warehouse_store_dist,
+    echelon_col="Store",
+    demand_col="store_total_stock",
+    demand_horizon="annual"
+)
 
 # --- Combine summaries ---
 all_summary = pd.concat([dc_summary, store_summary], ignore_index=True)
 
-# --- Deduplicate (SKU + Echelon) ---
-all_summary = all_summary.groupby(["SKU", "Echelon"], as_index=False).first()
+# --- ⚡ FIX: Do NOT group away Year/Month/Date ---
+# Just drop duplicates while keeping time info
+all_summary = all_summary.drop_duplicates(
+    subset=["Year","Month","Date","SKU","Echelon"]
+)
 
 print("\n--- Cost Summary (Sample) ---")
 print(all_summary.head(10).to_markdown(index=False))
 
 # --- Save Output ---
-OUTPUT_PATH = os.path.join(BASE_DIR, "multi_level_cost_summary.xlsx")
+OUTPUT_PATH = os.path.join(BASE_DIR, "multi_level_cost_summary_with_date.xlsx")
 all_summary.to_excel(OUTPUT_PATH, index=False)
-print(f"\n✅ Cost summary saved to {OUTPUT_PATH}")
+print(f"\n✅ Cost summary with Year, Month & Date saved to {OUTPUT_PATH}")
