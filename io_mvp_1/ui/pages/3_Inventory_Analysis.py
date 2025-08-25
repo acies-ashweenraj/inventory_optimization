@@ -462,7 +462,7 @@ with tabs[2]:
         else:
             inactive_summary = filtered_df_inactivity['Inactivity Bucket'].value_counts().reset_index()
             inactive_summary.columns = ['Inactivity Period', 'Inactive SKU Count']
-            # st.bar_chart(inactive_summary.set_index('Inactivity Period'))
+            st.bar_chart(inactive_summary.set_index('Inactivity Period'))
         
         # --- Inactivity Table View ---
             # --- Inactivity Analysis Table with Time Granularity (No Range Slider) ---

@@ -84,23 +84,81 @@ def fmt_money(v: float) -> str:
 # ======================================================
 # Styles
 # ======================================================
+# st.markdown("""
+# <style>
+# .kpi-row {display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 15px 0 18px;}
+# .kpi-card {
+#     border:1px solid rgba(255,255,255,0.15);
+#     background:rgba(30,30,30,0.7);
+#     padding:12px;
+#     border-radius:10px;
+#     box-shadow:0 2px 4px rgba(0,0,0,0.3);
+#     transition: all 0.2s ease-in-out;
+# }
+# .kpi-card:hover {background:rgba(60,60,60,0.85);}
+# .kpi-title {font-size:0.8rem; color:rgba(255,255,255,0.65);}
+# .kpi-value {font-size:1.2rem; font-weight:700; line-height:1.2;}
+# .kpi-sub {font-size:0.75rem; color:rgba(255,255,255,0.55);}
+# </style>
+# """, unsafe_allow_html=True)
+
+# def kpi_card(title, value, sub=""):
+#     st.markdown(f"""
+#     <div class="kpi-card">
+#       <div class="kpi-title">{title}</div>
+#       <div class="kpi-value">{value}</div>
+#       {'<div class="kpi-sub">'+sub+'</div>' if sub else ''}
+#     </div>""", unsafe_allow_html=True)
+
+# Styles
+# ======================================================
 st.markdown("""
 <style>
-.kpi-row {display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 8px 0 18px;}
-.kpi-card {
-    border:1px solid rgba(255,255,255,0.15);
-    background:rgba(30,30,30,0.7);
-    padding:12px;
-    border-radius:10px;
-    box-shadow:0 2px 4px rgba(0,0,0,0.3);
-    transition: all 0.2s ease-in-out;
+.kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin: 20px 0 25px;
 }
-.kpi-card:hover {background:rgba(60,60,60,0.85);}
-.kpi-title {font-size:0.8rem; color:rgba(255,255,255,0.65);}
-.kpi-value {font-size:1.2rem; font-weight:700; line-height:1.2;}
-.kpi-sub {font-size:0.75rem; color:rgba(255,255,255,0.55);}
+
+.kpi-card {
+    border: none;
+    background: linear-gradient(145deg, rgba(45,45,45,0.95), rgba(25,25,25,0.9));
+    padding: 18px 14px;
+    border-radius: 16px;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.35);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kpi-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.45);
+    background: linear-gradient(145deg, rgba(55,55,55,0.95), rgba(30,30,30,0.9));
+}
+
+.kpi-title {
+    font-size: 0.9rem;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+.kpi-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 6px;
+    line-height: 1.2;
+}
+
+.kpi-sub {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.6);
+    font-style: italic;
+}
 </style>
 """, unsafe_allow_html=True)
+
 
 def kpi_card(title, value, sub=""):
     st.markdown(f"""
@@ -109,6 +167,7 @@ def kpi_card(title, value, sub=""):
       <div class="kpi-value">{value}</div>
       {'<div class="kpi-sub">'+sub+'</div>' if sub else ''}
     </div>""", unsafe_allow_html=True)
+
 
 # ======================================================
 # Data
