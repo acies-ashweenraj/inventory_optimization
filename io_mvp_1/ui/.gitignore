@@ -1,2 +1,7 @@
 .env
-*.env
+
+~$*.xlsx  # Temporary Excel files
+
+
+__pycache__/
+*.pyc

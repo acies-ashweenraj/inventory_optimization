@@ -131,7 +131,8 @@ def create_flowchart_figure(layout, network_df):
     # === Legend ===
     legend_x = max([v['x'] for v in layout.values()] + [0]) + 200
     legend_y_start = 0
-    spacing = 60
+    spacing = 20
+    
 
     for i, (echelon, color) in enumerate(ECHELON_COLORS.items()):
         fig.add_trace(go.Scatter(

@@ -2,10 +2,9 @@ from pathlib import Path
 
 base_dir = Path(__file__).resolve().parent
 
-# Input data directory (relative to project root)
+
 data_dir = base_dir / "data"
 
-# Input files (relative paths)
 input_path = data_dir / "Multi_Sku.xlsx"
 demand_path = data_dir / "Multi_Sku.xlsx"
 lead_path = data_dir / "Leadtime_MultiSKU.xlsx"

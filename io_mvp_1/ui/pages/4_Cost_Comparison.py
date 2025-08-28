@@ -186,19 +186,140 @@ df = recompute_costs(df)
 # ======================================================
 # Global Filters
 # ======================================================
+# st.markdown("### 🔎 Global Filters")
+
+# echelons = sorted(df["Echelon"].unique())
+# skus = sorted(df["SKU"].unique())
+
+# col1, col2, col3 = st.columns([2,4,1])
+# sel_ech = col1.multiselect("Select Echelons", echelons, default=echelons)
+# sel_skus = col2.multiselect("Select SKUs", skus, default=skus)
+# top_n = col3.number_input("Top N SKUs",5,50,20)
+
+# fdf = df[df["Echelon"].isin(sel_ech) & df["SKU"].isin(sel_skus)]
+
+# if fdf.empty: st.warning("No data after filters"); st.stop()
+# ======================================================
+# Global Filters
+# ======================================================
+# st.markdown("### 🔎 Global Filters")
+
+# # --- Initialize session state for filters ---
+# for col in ["Echelon", "SKU"]:
+#     key = f"selected_{col.lower()}"
+#     if key not in st.session_state:
+#         st.session_state[key] = df[col].unique().tolist()
+
+# col1, col2, col3 = st.columns([2, 4, 1])
+
+# # ------------------ Echelon filter ------------------
+# with col1:
+#     with st.expander("Echelon Filter", expanded=False):
+#         all_echelons = sorted(df["Echelon"].unique())
+
+#         # ALL toggle
+#         all_ech_selected = st.checkbox(
+#             "Select All Echelons",
+#             value=len(st.session_state.selected_echelon) == len(all_echelons),
+#             key="ech_all"
+#         )
+
+#         # If ALL is checked, keep everything selected
+#         if all_ech_selected:
+#             st.session_state.selected_echelon = all_echelons
+
+#         # Render individual checkboxes
+#         new_selection = []
+#         for val in all_echelons:
+#             if st.checkbox(val, value=val in st.session_state.selected_echelon, key=f"ech_{val}"):
+#                 new_selection.append(val)
+#         st.session_state.selected_echelon = new_selection
+
+# # ------------------ SKU filter ------------------
+# with col2:
+#     with st.expander("SKU Filter", expanded=False):
+#         all_skus = sorted(df["SKU"].unique())
+
+#         # ALL toggle
+#         all_sku_selected = st.checkbox(
+#             "Select All SKUs",
+#             value=len(st.session_state.selected_sku) == len(all_skus),
+#             key="sku_all"
+#         )
+
+#         # If ALL is checked, keep everything selected
+#         if all_sku_selected:
+#             st.session_state.selected_sku = all_skus
+
+#         # Render individual checkboxes
+#         new_selection = []
+#         for val in all_skus:
+#             if st.checkbox(str(val), value=val in st.session_state.selected_sku, key=f"sku_{val}"):
+#                 new_selection.append(val)
+#         st.session_state.selected_sku = new_selection
+
+# # ------------------ Top N ------------------
+# with col3:
+#     top_n = st.number_input("Top N SKUs", 5, 50, 20)
+
+# ======================================================
+# Global Filters with Select All
+# ======================================================
 st.markdown("### 🔎 Global Filters")
 
-echelons = sorted(df["Echelon"].unique())
-skus = sorted(df["SKU"].unique())
+# --- Initialize session state for filters ---
+for col in ["Echelon", "SKU"]:
+    key = f"selected_{col.lower()}"
+    if key not in st.session_state:
+        st.session_state[key] = df[col].unique().tolist()
 
-col1, col2, col3 = st.columns([2,4,1])
-sel_ech = col1.multiselect("Select Echelons", echelons, default=echelons)
-sel_skus = col2.multiselect("Select SKUs", skus, default=skus)
-top_n = col3.number_input("Top N SKUs",5,50,20)
+col1, col2, col3 = st.columns([2, 4, 1])
 
-fdf = df[df["Echelon"].isin(sel_ech) & df["SKU"].isin(sel_skus)]
+# Echelon filter
+with col1:
+    with st.expander("Echelon Filter", expanded=False):
+        all_echelons = sorted(df["Echelon"].unique())
+        all_ech_selected = st.checkbox(
+            "Select All Echelons",
+            value=len(st.session_state.selected_echelon) == len(all_echelons),
+            key="ech_all"
+        )
+        new_selection = []
+        for val in all_echelons:
+            checked = all_ech_selected or (val in st.session_state.selected_echelon)
+            if st.checkbox(val, value=checked, key=f"ech_{val}"):
+                new_selection.append(val)
+        st.session_state.selected_echelon = new_selection
 
-if fdf.empty: st.warning("No data after filters"); st.stop()
+# SKU filter
+with col2:
+    with st.expander("SKU Filter", expanded=False):
+        all_skus = sorted(df["SKU"].unique())
+        all_sku_selected = st.checkbox(
+            "Select All SKUs",
+            value=len(st.session_state.selected_sku) == len(all_skus),
+            key="sku_all"
+        )
+        new_selection = []
+        for val in all_skus:
+            checked = all_sku_selected or (val in st.session_state.selected_sku)
+            if st.checkbox(str(val), value=checked, key=f"sku_{val}"):
+                new_selection.append(val)
+        st.session_state.selected_sku = new_selection
+
+# Top N
+with col3:
+    top_n = st.number_input("Top N SKUs", 5, 50, 20)
+
+# Filter dataframe
+fdf = df[
+    df["Echelon"].isin(st.session_state.selected_echelon) &
+    df["SKU"].isin(st.session_state.selected_sku)
+]
+
+if fdf.empty:
+    st.warning("No data after filters")
+    st.stop()
 
 # ======================================================
 # Tabs
