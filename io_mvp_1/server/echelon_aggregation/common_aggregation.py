@@ -30,7 +30,6 @@ def aggreagation_func(df,echelon):
             lead_time = LEAD_TIME1.get((wh_node, to_node), 10)
 
 
-
         elif echelon.lower() == "warehouse":
             dc_node = echelon_df.loc[i, "DC"]
             to_node = echelon_df.loc[i, "Warehouse"]

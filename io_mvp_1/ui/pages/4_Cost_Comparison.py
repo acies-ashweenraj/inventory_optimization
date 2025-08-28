@@ -39,9 +39,9 @@ def load_data(path: str) -> pd.DataFrame | None:
 
 def ensure_types(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
-    if "SKU" in df: df["SKU"] = df["SKU"].astype(str)  # ✅ make categorical
+    if "SKU" in df: df["SKU"] = df["SKU"].astype(str)
     if "Echelon" in df: df["Echelon"] = df["Echelon"].astype(str)
-    for c in NUMERIC_COLS:
+    for c in NUMERIC_COLS:  # proper variable names
         if c in df: df[c] = pd.to_numeric(df[c], errors="coerce")
     return df
 
@@ -82,83 +82,54 @@ def fmt_money(v: float) -> str:
     return f"₹{v:,.2f}"
 
 # ======================================================
-# Styles
-# ======================================================
-# st.markdown("""
-# <style>
-# .kpi-row {display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 15px 0 18px;}
-# .kpi-card {
-#     border:1px solid rgba(255,255,255,0.15);
-#     background:rgba(30,30,30,0.7);
-#     padding:12px;
-#     border-radius:10px;
-#     box-shadow:0 2px 4px rgba(0,0,0,0.3);
-#     transition: all 0.2s ease-in-out;
-# }
-# .kpi-card:hover {background:rgba(60,60,60,0.85);}
-# .kpi-title {font-size:0.8rem; color:rgba(255,255,255,0.65);}
-# .kpi-value {font-size:1.2rem; font-weight:700; line-height:1.2;}
-# .kpi-sub {font-size:0.75rem; color:rgba(255,255,255,0.55);}
-# </style>
-# """, unsafe_allow_html=True)
-
-# def kpi_card(title, value, sub=""):
-#     st.markdown(f"""
-#     <div class="kpi-card">
-#       <div class="kpi-title">{title}</div>
-#       <div class="kpi-value">{value}</div>
-#       {'<div class="kpi-sub">'+sub+'</div>' if sub else ''}
-#     </div>""", unsafe_allow_html=True)
-
-# Styles
+# Styles (Compact KPI Cards)
 # ======================================================
 st.markdown("""
 <style>
 .kpi-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 16px;
-    margin: 20px 0 25px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin: 10px 0 20px;
 }
 
 .kpi-card {
-    border: none;
-    background: linear-gradient(145deg, rgba(45,45,45,0.95), rgba(25,25,25,0.9));
-    padding: 18px 14px;
-    border-radius: 16px;
-    box-shadow: 0 6px 12px rgba(0,0,0,0.35);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: linear-gradient(145deg, #2a2a2a, #1e1e1e);
+    padding: 12px 10px;
+    border-radius: 12px;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .kpi-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.45);
-    background: linear-gradient(145deg, rgba(55,55,55,0.95), rgba(30,30,30,0.9));
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.35);
 }
 
 .kpi-title {
-    font-size: 0.9rem;
-    color: rgba(255,255,255,0.7);
-    margin-bottom: 4px;
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.65);
+    margin-bottom: 2px;
     font-weight: 500;
+    letter-spacing: 0.3px;
 }
 
 .kpi-value {
-    font-size: 1.6rem;
+    font-size: 1.3rem;
     font-weight: 700;
     color: #ffffff;
-    margin-bottom: 6px;
+    margin-bottom: 2px;
     line-height: 1.2;
 }
 
 .kpi-sub {
-    font-size: 0.8rem;
-    color: rgba(255,255,255,0.6);
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.55);
     font-style: italic;
 }
 </style>
 """, unsafe_allow_html=True)
-
 
 def kpi_card(title, value, sub=""):
     st.markdown(f"""
@@ -167,7 +138,6 @@ def kpi_card(title, value, sub=""):
       <div class="kpi-value">{value}</div>
       {'<div class="kpi-sub">'+sub+'</div>' if sub else ''}
     </div>""", unsafe_allow_html=True)
-
 
 # ======================================================
 # Data
@@ -184,94 +154,9 @@ df = ensure_types(df)
 df = recompute_costs(df)
 
 # ======================================================
-# Global Filters
-# ======================================================
-# st.markdown("### 🔎 Global Filters")
-
-# echelons = sorted(df["Echelon"].unique())
-# skus = sorted(df["SKU"].unique())
-
-# col1, col2, col3 = st.columns([2,4,1])
-# sel_ech = col1.multiselect("Select Echelons", echelons, default=echelons)
-# sel_skus = col2.multiselect("Select SKUs", skus, default=skus)
-# top_n = col3.number_input("Top N SKUs",5,50,20)
-
-# fdf = df[df["Echelon"].isin(sel_ech) & df["SKU"].isin(sel_skus)]
-
-# if fdf.empty: st.warning("No data after filters"); st.stop()
-# ======================================================
-# Global Filters
-# ======================================================
-# st.markdown("### 🔎 Global Filters")
-
-# # --- Initialize session state for filters ---
-# for col in ["Echelon", "SKU"]:
-#     key = f"selected_{col.lower()}"
-#     if key not in st.session_state:
-#         st.session_state[key] = df[col].unique().tolist()
-
-# col1, col2, col3 = st.columns([2, 4, 1])
-
-# # ------------------ Echelon filter ------------------
-# with col1:
-#     with st.expander("Echelon Filter", expanded=False):
-#         all_echelons = sorted(df["Echelon"].unique())
-
-#         # ALL toggle
-#         all_ech_selected = st.checkbox(
-#             "Select All Echelons",
-#             value=len(st.session_state.selected_echelon) == len(all_echelons),
-#             key="ech_all"
-#         )
-
-#         # If ALL is checked, keep everything selected
-#         if all_ech_selected:
-#             st.session_state.selected_echelon = all_echelons
-
-#         # Render individual checkboxes
-#         new_selection = []
-#         for val in all_echelons:
-#             if st.checkbox(val, value=val in st.session_state.selected_echelon, key=f"ech_{val}"):
-#                 new_selection.append(val)
-#         st.session_state.selected_echelon = new_selection
-
-# # ------------------ SKU filter ------------------
-# with col2:
-#     with st.expander("SKU Filter", expanded=False):
-#         all_skus = sorted(df["SKU"].unique())
-
-#         # ALL toggle
-#         all_sku_selected = st.checkbox(
-#             "Select All SKUs",
-#             value=len(st.session_state.selected_sku) == len(all_skus),
-#             key="sku_all"
-#         )
-
-#         # If ALL is checked, keep everything selected
-#         if all_sku_selected:
-#             st.session_state.selected_sku = all_skus
-
-#         # Render individual checkboxes
-#         new_selection = []
-#         for val in all_skus:
-#             if st.checkbox(str(val), value=val in st.session_state.selected_sku, key=f"sku_{val}"):
-#                 new_selection.append(val)
-#         st.session_state.selected_sku = new_selection
-
-# # ------------------ Top N ------------------
-# with col3:
-#     top_n = st.number_input("Top N SKUs", 5, 50, 20)
-
-# ======================================================
-# Global Filters with Select All
+# Global Filters with Proper Select All
 # ======================================================
 st.markdown("### 🔎 Global Filters")
-
-# --- Initialize session state for filters ---
-for col in ["Echelon", "SKU"]:
-    key = f"selected_{col.lower()}"
-    if key not in st.session_state:
-        st.session_state[key] = df[col].unique().tolist()
 
 col1, col2, col3 = st.columns([2, 4, 1])
 
@@ -279,33 +164,25 @@ col1, col2, col3 = st.columns([2, 4, 1])
 with col1:
     with st.expander("Echelon Filter", expanded=False):
         all_echelons = sorted(df["Echelon"].unique())
-        all_ech_selected = st.checkbox(
-            "Select All Echelons",
-            value=len(st.session_state.selected_echelon) == len(all_echelons),
-            key="ech_all"
+        ech_select_all = st.checkbox("Select All Echelons", value=True, key="ech_all")
+        selected_echelon = st.multiselect(
+            "Select Echelons",
+            all_echelons,
+            default=all_echelons if ech_select_all else [],
+            key="ech_multi"
         )
-        new_selection = []
-        for val in all_echelons:
-            checked = all_ech_selected or (val in st.session_state.selected_echelon)
-            if st.checkbox(val, value=checked, key=f"ech_{val}"):
-                new_selection.append(val)
-        st.session_state.selected_echelon = new_selection
 
 # SKU filter
 with col2:
     with st.expander("SKU Filter", expanded=False):
         all_skus = sorted(df["SKU"].unique())
-        all_sku_selected = st.checkbox(
-            "Select All SKUs",
-            value=len(st.session_state.selected_sku) == len(all_skus),
-            key="sku_all"
+        sku_select_all = st.checkbox("Select All SKUs", value=True, key="sku_all")
+        selected_sku = st.multiselect(
+            "Select SKUs",
+            all_skus,
+            default=all_skus if sku_select_all else [],
+            key="sku_multi"
         )
-        new_selection = []
-        for val in all_skus:
-            checked = all_sku_selected or (val in st.session_state.selected_sku)
-            if st.checkbox(str(val), value=checked, key=f"sku_{val}"):
-                new_selection.append(val)
-        st.session_state.selected_sku = new_selection
 
 # Top N
 with col3:
@@ -313,8 +190,8 @@ with col3:
 
 # Filter dataframe
 fdf = df[
-    df["Echelon"].isin(st.session_state.selected_echelon) &
-    df["SKU"].isin(st.session_state.selected_sku)
+    df["Echelon"].isin(selected_echelon) &
+    df["SKU"].isin(selected_sku)
 ]
 
 if fdf.empty:
@@ -324,7 +201,7 @@ if fdf.empty:
 # ======================================================
 # Tabs
 # ======================================================
-tabs = st.tabs(["📌 KPIs Overview","📈 Charts & Visuals","📑 Summaries","📂 Detailed Data"])
+tabs = st.tabs(["📌 KPIs Overview","📈 Charts & Visuals","📂 Detailed Data"])
 
 # --- KPIs ---
 with tabs[0]:
@@ -349,7 +226,7 @@ with tabs[1]:
         barmode="group",
         hover_data=["Echelon"]
     )
-    fig1.update_xaxes(type="category")  # ✅ categorical axis
+    fig1.update_xaxes(type="category")
     st.plotly_chart(fig1,use_container_width=True)
 
     st.subheader("Total Cost Savings by Echelon")
@@ -367,22 +244,21 @@ with tabs[1]:
         hover_data={"Savings_Rate":":.2%"},
         color="Cost_Savings"
     )
-    fig3.update_yaxes(type="category")  # ✅ categorical axis
+    fig3.update_yaxes(type="category")
     st.plotly_chart(fig3,use_container_width=True)
 
-# --- Summaries ---
-with tabs[2]:
-    colA,colB = st.columns(2)
-    with colA:
-        st.markdown("**Summary by Echelon**")
-        ech = agg_by_echelon(fdf)
-        st.dataframe(ech,use_container_width=True)
-    with colB:
-        st.markdown("**Summary by SKU**")
-        sku = agg_by_sku(fdf)
-        st.dataframe(sku,use_container_width=True)
-
 # --- Detailed Data ---
-with tabs[3]:
+with tabs[2]:
     st.subheader("Filtered Dataset")
     st.dataframe(fdf,use_container_width=True)
+
+    # Download Options
+    csv = fdf.to_csv(index=False).encode("utf-8")
+    excel = fdf.to_excel("detailed_data.xlsx", index=False)
+
+    st.download_button(
+        "⬇️ Download as CSV",
+        data=csv,
+        file_name="detailed_data.csv",
+        mime="text/csv",
+    )

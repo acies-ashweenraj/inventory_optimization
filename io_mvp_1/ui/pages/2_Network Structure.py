@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -10,7 +11,6 @@ DATA_DIR = BASE_DIR / ".." / ".." / "server" / "data"
 
 lead_path = DATA_DIR / "Leadtime_MultiSKU.xlsx"
 cost_path = DATA_DIR / "Node_Costs.xlsx"
-
 
 ECHELON_COLORS = {
     "DC": "#6B5B95",          # Purple
@@ -132,7 +132,6 @@ def create_flowchart_figure(layout, network_df):
     legend_x = max([v['x'] for v in layout.values()] + [0]) + 200
     legend_y_start = 0
     spacing = 20
-    
 
     for i, (echelon, color) in enumerate(ECHELON_COLORS.items()):
         fig.add_trace(go.Scatter(
@@ -165,56 +164,43 @@ def show_network_structure():
         st.warning("Please check your Excel files in the data folder.")
         return
 
-    st.markdown("<div class='filter-box'>", unsafe_allow_html=True)
-
-    # Initialize session state filters
-    for col in ['Country', 'Echelon_Type', 'Location_ID']:
-        key = f"selected_{col.lower()}"
-        if key not in st.session_state:
-            st.session_state[key] = location_df[col].unique().tolist()
+    # --- Filters with Select All ---
+    st.subheader("Filters")
 
     col1, col2, col3 = st.columns(3)
 
-    # COUNTRY Filter
+    # Country Filter
     with col1:
-        with st.expander("Country Filter", expanded=False):
-            for val in sorted(location_df['Country'].unique()):
-                if st.checkbox(val, value=val in st.session_state.selected_country, key=f"country_{val}"):
-                    if val not in st.session_state.selected_country:
-                        st.session_state.selected_country.append(val)
-                else:
-                    if val in st.session_state.selected_country:
-                        st.session_state.selected_country.remove(val)
+        options = sorted(location_df['Country'].unique())
+        selected = st.multiselect("Country", ["Select All"] + options, default=["Select All"])
+        if "Select All" in selected:
+            selected_countries = options
+        else:
+            selected_countries = selected
 
     # Echelon Filter
     with col2:
-        with st.expander("Echelon Type Filter", expanded=False):
-            for val in sorted(location_df['Echelon_Type'].unique()):
-                if st.checkbox(val, value=val in st.session_state.selected_echelon_type, key=f"echelon_{val}"):
-                    if val not in st.session_state.selected_echelon_type:
-                        st.session_state.selected_echelon_type.append(val)
-                else:
-                    if val in st.session_state.selected_echelon_type:
-                        st.session_state.selected_echelon_type.remove(val)
+        options = sorted(location_df['Echelon_Type'].unique())
+        selected = st.multiselect("Echelon Type", ["Select All"] + options, default=["Select All"])
+        if "Select All" in selected:
+            selected_echelons = options
+        else:
+            selected_echelons = selected
 
-    # Location ID Filter
+    # Location Filter
     with col3:
-        with st.expander("Location ID Filter", expanded=False):
-            for val in sorted(location_df['Location_ID'].unique()):
-                if st.checkbox(str(val), value=val in st.session_state.selected_location_id, key=f"loc_{val}"):
-                    if val not in st.session_state.selected_location_id:
-                        st.session_state.selected_location_id.append(val)
-                else:
-                    if val in st.session_state.selected_location_id:
-                        st.session_state.selected_location_id.remove(val)
-
-    st.markdown("</div>", unsafe_allow_html=True)
+        options = sorted(location_df['Location_ID'].unique())
+        selected = st.multiselect("Location ID", ["Select All"] + options, default=["Select All"])
+        if "Select All" in selected:
+            selected_locations = options
+        else:
+            selected_locations = selected
 
     # Filter Data
     filtered_df = location_df[
-        location_df['Country'].isin(st.session_state.selected_country) &
-        location_df['Echelon_Type'].isin(st.session_state.selected_echelon_type) &
-        location_df['Location_ID'].isin(st.session_state.selected_location_id)
+        location_df['Country'].isin(selected_countries) &
+        location_df['Echelon_Type'].isin(selected_echelons) &
+        location_df['Location_ID'].isin(selected_locations)
     ]
 
     valid_ids = filtered_df['Location_ID'].unique()
