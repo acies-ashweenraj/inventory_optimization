@@ -238,14 +238,6 @@ def show_wh_store_heatmap(df: pd.DataFrame):
 
 
 
-# def show_demand_over_time_line_chart(df: pd.DataFrame, demand_col: str):
-#     df, date_col = preprocess_dates(df)
-#     if date_col is None or demand_col not in df.columns:
-#         return
-#     df_agg = df.groupby(pd.Grouper(key=date_col, freq='M'))[demand_col].sum().reset_index()
-#     fig = px.line(df_agg, x=date_col, y=demand_col, title=f"{demand_col} Over Time")
-#     st.plotly_chart(fig, use_container_width=True)
-
 def show_monthly_eoq_bar_chart(df: pd.DataFrame):
     if "monthly_eoq" not in df.columns or "ItemStat_Item" not in df.columns:
         return
@@ -360,41 +352,6 @@ def display_section(title: str, files_dict: dict, is_distribution: bool = False)
     else:
         st.info("No datetime column to filter by.")
         filtered_df_by_date = df
-# def display_section(title: str, files_dict: dict, is_distribution: bool = False):
-#     st.header(title)
-    
-#     col1, col2 = st.columns(2)
-#     with col1:
-#         selected_key = st.selectbox(f"Select {title.lower()} file:", list(files_dict.keys()), key=f"{title}_selectfile")
-    
-#     file_path = files_dict[selected_key]
-#     if not os.path.exists(file_path):
-#         st.error(f"⚠️ File not found: {file_path}")
-#         return
-
-#     # Load data and preprocess dates in one go to ensure all subsequent uses get the correct DataFrame
-#     df, date_col = preprocess_dates(load_excel(file_path))
-
-#     if df is None or df.empty:
-#         st.warning("No data found in the file.")
-#         return
-    
-#     with col2:
-#         if date_col:
-#             # Display overall date range for user information
-#             min_date = pd.to_datetime(df[date_col].min()).date()
-#             max_date = pd.to_datetime(df[date_col].max()).date()
-#             st.markdown(f"**Overall Timeframe:** `{min_date}` to `{max_date}`")
-
-#             start_date, end_date = st.date_input(
-#                 "Select a date range",
-#                 [min_date, max_date],
-#                 key=f"{title}_date_range"
-#             )
-#             filtered_df_by_date = apply_date_range_filter(df, date_col, start_date, end_date)
-#         else:
-#             st.info("No datetime column to filter by.")
-#             filtered_df_by_date = df
     
     tab1, tab2 = st.tabs(["📊 Data, Filters & Visuals", "📥 Download"])
 

@@ -1,10 +1,15 @@
 from pathlib import Path
 
-input_path = r"\data\Multi_Sku.xlsx"
-demand_path = r"C:\Users\Rishikesh\Desktop\inventory_optimization\io_mvp_1\server\data\Multi_Sku.xlsx"
-lead_path = r"C:\Users\Rishikesh\Desktop\inventory_optimization\io_mvp_1\server\data\Leadtime_MultiSKU.xlsx"
-cost_path = r"C:\Users\Rishikesh\Desktop\inventory_optimization\io_mvp_1\server\data\Node_Costs.xlsx"
+base_dir = Path(__file__).resolve().parent
 
+# Input data directory (relative to project root)
+data_dir = base_dir / "data"
+
+# Input files (relative paths)
+input_path = data_dir / "Multi_Sku.xlsx"
+demand_path = data_dir / "Multi_Sku.xlsx"
+lead_path = data_dir / "Leadtime_MultiSKU.xlsx"
+cost_input_path = data_dir / "Node_Costs.xlsx"
 
 base_output_dir = Path(".//output_data")
 

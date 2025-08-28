@@ -7,10 +7,9 @@ from server.distribution.dc_distribution import dc_distribution
 from server.distribution.warehouse_distribution import warehouse_distribution
 from server.schedules import store_schedule
 from server.schedules import warehouse_schedule
-# from server.cost_comparison import cost_merge,eoq_cost,non_eoq_cost
+from server.cost_comparison.multi_cost_test import run_multi_level_cost_comparison
 from server.Preassumptions import STORE_SCHEDULE,WAREHOUSE_SCHEDULE
 from server.config import input_path,monthly_demand_path,calculated_metrics_path,distribution_path,schedule_path,cost_path
-import pickle, os
 
 
 
@@ -43,12 +42,9 @@ def schedule(store_demand_df,warehouse_demand_df):
 
     return store_schedule_df,warehouse_schedule_df
 
-def cost(store_schedule_df,store_demand_df,warehouse_store_distribution):
-    eoq_cost_df = eoq_cost.eoq_cost_function(store_schedule_df,store_demand_df)
-    non_eoq_cost_df = non_eoq_cost.non_eoq_cost_function(warehouse_store_distribution)
-    cost_merged_df = cost_merge.cost_merge_function(eoq_cost_df,non_eoq_cost_df)
+def cost():
+    run_multi_level_cost_comparison()
 
-    return eoq_cost_df,non_eoq_cost_df,cost_merged_df
 
 def download(store_df,warehouse_df,dc_df,store_demand_df,warehouse_demand_df,dc_demand_df,warehouse_store_distribution,dc_warehouse_distribution,store_schedule_df,warehouse_schedule_df):
     store_df.to_excel(f"{monthly_demand_path}/store_aggregated_monthly_demand.xlsx", index=False, engine='openpyxl')
