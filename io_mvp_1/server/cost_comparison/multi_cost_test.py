@@ -1,112 +1,139 @@
-# import os
-# import pandas as pd
-# import numpy as np
+import os
+import pandas as pd
+import numpy as np
 
-# # --- Paths ---
-# BASE_DIR = os.path.dirname(__file__)
-# SERVER_DATA_DIR = os.path.join(BASE_DIR, "data")
-# UI_DIST_DIR = os.path.join(BASE_DIR, "..", "ui", "output_data", "distribution")
+# --- Helper: EOQ calculation ---
+def calculate_eoq(demand, ordering_cost, holding_cost):
+    """
+    Calculates the Economic Order Quantity (EOQ).
+    """
+    try:
+        if demand > 0 and ordering_cost > 0 and holding_cost > 0:
+            return np.sqrt((2 * demand * ordering_cost) / holding_cost)
+        else:
+            return 0
+    except:
+        return 0
 
-# # --- Load Data ---
-# product_master = pd.read_excel(os.path.join(SERVER_DATA_DIR, "Product_Master.xlsx"))
-# node_cost = pd.read_excel(os.path.join(SERVER_DATA_DIR, "Node_Costs.xlsx"))
-# dc_warehouse_dist = pd.read_excel(os.path.join(UI_DIST_DIR, "dc_warehouse_distribution_df.xlsx"))
-# warehouse_store_dist = pd.read_excel(os.path.join(UI_DIST_DIR, "warehouse_store_distribution_df.xlsx"))
+# --- Cost Calculation Function ---
+def compute_costs(df, echelon_col, demand_col, sku_col="ItemStat_Item"):
+    """
+    Computes EOQ and Non-EOQ costs for a given distribution DataFrame.
+    """
+    # --- Paths ---
+    BASE_DIR = os.path.dirname(__file__)
+    SERVER_DATA_DIR = os.path.join(BASE_DIR, "data")
+    
+    # --- Load Data ---
+    try:
+        product_master = pd.read_excel(os.path.join(SERVER_DATA_DIR, "Product_Master.xlsx"))
+        node_cost = pd.read_excel(os.path.join(SERVER_DATA_DIR, "Node_Costs.xlsx"))
+    except FileNotFoundError as e:
+        print(f"Error loading required data files: {e}")
+        return pd.DataFrame()
 
-# print("✅ Data loaded")
+    results = []
+    for _, row in df.iterrows():
+        sku = row[sku_col]
+        demand = row[demand_col]
+        echelon = row[echelon_col]
 
-# # --- EOQ formula ---
-# def calculate_eoq(demand, ordering_cost, holding_cost):
-#     if demand > 0 and ordering_cost > 0 and holding_cost > 0:
-#         return np.sqrt((2 * demand * ordering_cost) / holding_cost)
-#     return 0
+        # Get product cost
+        prod_cost = product_master.loc[product_master["SKU"] == sku, "Product_Cost"].values
+        if len(prod_cost) == 0:
+            continue
+        prod_cost = prod_cost[0]
 
-# # --- Compute cost summary ---
-# def compute_cost_summary(df, echelon_col, demand_col, sku_col="ItemStat_Item", demand_horizon="monthly"):
-#     records = []
+        # Get node costs
+        node_row = node_cost.loc[node_cost["Node"] == echelon]
+        if node_row.empty:
+            continue
+        ordering_cost = node_row["Ordering Cost"].values[0]
+        holding_cost_rate = node_row["Holding Cost"].values[0]
 
-#     for _, row in df.iterrows():
-#         sku = row[sku_col]
-#         demand = row[demand_col]
-#         echelon = row[echelon_col]
+        # Holding cost = % of product cost
+        holding_cost = holding_cost_rate * prod_cost
 
-#         # --- Normalize demand to annual ---
-#         if demand_horizon == "monthly":
-#             annual_demand = demand * 12
-#         elif demand_horizon == "weekly":
-#             annual_demand = demand * 52
-#         else:
-#             annual_demand = demand
+        # --- EOQ Policy ---
+        eoq = calculate_eoq(demand, ordering_cost, holding_cost)
+        ordering_cost_eoq = (demand / eoq) * ordering_cost if eoq > 0 else 0
+        holding_cost_eoq = (eoq / 2) * holding_cost if eoq > 0 else 0
+        total_cost_eoq = ordering_cost_eoq + holding_cost_eoq
 
-#         # --- Product cost ---
-#         prod_row = product_master.loc[product_master["SKU"] == sku]
-#         if prod_row.empty:
-#             continue
-#         prod_cost = prod_row["Product_Cost"].values[0]
+        # --- Non-EOQ Policy (order once per year = demand in one lot) ---
+        ordering_cost_non = ordering_cost
+        holding_cost_non = (demand / 2) * holding_cost
+        total_cost_non = ordering_cost_non + holding_cost_non
 
-#         # --- Node costs ---
-#         node_row = node_cost.loc[node_cost["Node"] == echelon]
-#         if node_row.empty:
-#             continue
-#         ordering_cost = node_row["Ordering Cost"].values[0]
-#         holding_cost_rate = node_row["Holding Cost"].values[0]
-#         holding_cost = holding_cost_rate * prod_cost  # annual holding cost per unit
+        # --- Savings ---
+        savings = total_cost_non - total_cost_eoq
 
-#         # =======================
-#         # EOQ Policy
-#         # =======================
-#         eoq = calculate_eoq(annual_demand, ordering_cost, holding_cost)
-#         num_orders_eoq = annual_demand / eoq if eoq > 0 else 0
-#         eoq_ordering_cost = num_orders_eoq * ordering_cost
-#         eoq_holding_cost = (eoq / 2) * holding_cost
-#         eoq_total = eoq_ordering_cost + eoq_holding_cost
+        results.append({
+            "SKU": sku,
+            "Echelon": echelon,
+            "Demand": demand,
+            "Product_Cost": prod_cost,
+            "Ordering_Cost": ordering_cost,
+            "Holding_Cost_per_unit": holding_cost,
+            "EOQ": round(eoq, 2),
+            # EOQ Policy
+            "EOQ_Ordering_Cost": round(ordering_cost_eoq, 2),
+            "EOQ_Holding_Cost": round(holding_cost_eoq, 2),
+            "EOQ_Total_Cost": round(total_cost_eoq, 2),
+            # Non-EOQ Policy
+            "NonEOQ_Ordering_Cost": round(ordering_cost_non, 2),
+            "NonEOQ_Holding_Cost": round(holding_cost_non, 2),
+            "NonEOQ_Total_Cost": round(total_cost_non, 2),
+            # Comparison
+            "Cost_Savings": round(savings, 2)
+        })
+    return pd.DataFrame(results)
 
-#         # =======================
-#         # Non-MEIO (monthly orders)
-#         # =======================
-#         q_non = annual_demand / 12  # order qty each month
-#         non_ordering_cost = 12 * ordering_cost
-#         non_holding_cost = (q_non / 2) * holding_cost * 12 / 12  # average inventory * H
-#         non_total = non_ordering_cost + non_holding_cost
+# ----------------------------------------------------------------------
+# This is the new function that will be imported and called.
+# It encapsulates the main logic of your original script.
+# ----------------------------------------------------------------------
+def run_multi_level_cost_comparison():
+    """
+    Loads distribution data, computes costs for different echelons,
+    combines the results, and saves them to an Excel file.
+    
+    Returns:
+        pd.DataFrame: A DataFrame with the combined cost comparison results.
+    """
+    # --- Paths ---
+    BASE_DIR = os.path.dirname(__file__)
+    SERVER_DATA_DIR = os.path.join(BASE_DIR, "data")
+    UI_DIST_DIR = os.path.join(BASE_DIR, "..", "ui", "output_data", "distribution")
 
-#         # =======================
-#         # Record
-#         # =======================
-#         records.append({
-#             "SKU": sku,
-#             "Echelon": echelon,
-#             "Demand": annual_demand,
-#             "Product_Cost": prod_cost,
-#             "Ordering_Cost": ordering_cost,
-#             "Holding_Cost_per_unit": holding_cost,
-#             "EOQ": round(eoq, 2),
-#             "EOQ_Ordering_Cost": round(eoq_ordering_cost, 2),
-#             "EOQ_Holding_Cost": round(eoq_holding_cost, 2),
-#             "EOQ_Total_Cost": round(eoq_total, 2),
-#             "NonEOQ_Ordering_Cost": round(non_ordering_cost, 2),
-#             "NonEOQ_Holding_Cost": round(non_holding_cost, 2),
-#             "NonEOQ_Total_Cost": round(non_total, 2),
-#             "Cost_Savings": round(non_total - eoq_total, 2)
-#         })
+    # --- Load Data ---
+    try:
+        dc_warehouse_dist = pd.read_excel(os.path.join(UI_DIST_DIR, "dc_warehouse_distribution_df.xlsx"))
+        warehouse_store_dist = pd.read_excel(os.path.join(UI_DIST_DIR, "warehouse_store_distribution_df.xlsx"))
+        print("✅ Data loaded")
+    except FileNotFoundError as e:
+        print(f"Error loading required distribution data: {e}")
+        return pd.DataFrame()
 
-#     return pd.DataFrame(records)
+    # --- Run for DC → Warehouse ---
+    dc_results = compute_costs(dc_warehouse_dist, echelon_col="Warehouse", demand_col="Warehouse_Monthly_Demand")
 
-# # --- Run for DC → Warehouse ---
-# dc_summary = compute_cost_summary(dc_warehouse_dist, echelon_col="Warehouse", demand_col="Warehouse_Monthly_Demand", demand_horizon="monthly")
+    # --- Run for Warehouse → Store ---
+    store_results = compute_costs(warehouse_store_dist, echelon_col="Store", demand_col="store_total_stock")
 
-# # --- Run for Warehouse → Store ---
-# store_summary = compute_cost_summary(warehouse_store_dist, echelon_col="Store", demand_col="store_total_stock", demand_horizon="annual")
+    # --- Combine ---
+    all_results = pd.concat([dc_results, store_results], ignore_index=True)
 
-# # --- Combine summaries ---
-# all_summary = pd.concat([dc_summary, store_summary], ignore_index=True)
+    print("\n--- EOQ vs Non-EOQ Cost Comparison (Sample) ---")
+    print(all_results.head(10))
 
-# # --- Deduplicate (SKU + Echelon) ---
-# all_summary = all_summary.groupby(["SKU", "Echelon"], as_index=False).first()
+    # --- Save Output ---
+    OUTPUT_PATH = os.path.join(BASE_DIR, "multi_level_cost_comparison.xlsx")
+    all_results.to_excel(OUTPUT_PATH, index=False)
+    print(f"\n✅ Results saved to {OUTPUT_PATH}")
+    
+    return all_results
 
-# print("\n--- Cost Summary (Sample) ---")
-# print(all_summary.head(10).to_markdown(index=False))
-
-# # --- Save Output ---
-# OUTPUT_PATH = os.path.join(BASE_DIR, "multi_level_cost_summary.xlsx")
-# all_summary.to_excel(OUTPUT_PATH, index=False)
-# print(f"\n✅ Cost summary saved to {OUTPUT_PATH}")
+# If you run this file directly, it will execute the function.
+if __name__ == "__main__":
+    run_multi_level_cost_comparison()
