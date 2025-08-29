@@ -5,6 +5,7 @@ import difflib
 import sys
 import traceback
 import io
+import time
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from server.app import run_meio_pipeline
@@ -265,8 +266,11 @@ if all([st.session_state.upload_status[k] for k in ["Demand Forecast", "Lead Tim
     if not st.session_state.engine_run:
         if st.button("Run MEIO Engine"):
             try:
+                start = time.time()
                 run_meio_pipeline()
+                end = time.time()
                 st.success("MEIO Engine executed successfully.")
+                st.info(f"{end-start:.2f}")
                 st.session_state.engine_run = True
             except Exception as e:
                 st.error("❌ MEIO Engine failed.")
