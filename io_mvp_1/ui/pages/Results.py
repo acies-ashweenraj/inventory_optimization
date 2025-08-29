@@ -4,7 +4,7 @@ import os
 import io
 import plotly.express as px
 import plotly.graph_objects as go
-from datetime import datetime, timedelta
+from datetime import datetime
 
 st.set_page_config(page_title="Distribution & Schedule Results", layout="wide")
 
@@ -36,18 +36,11 @@ def load_excel(path: str) -> pd.DataFrame | None:
         return None
 
 def preprocess_dates(df: pd.DataFrame) -> tuple[pd.DataFrame, str | None]:
-    """
-    Detects and standardizes datetime columns, or creates one from 'Year' and 'Month'.
-    Returns the processed DataFrame and the name of the datetime column.
-    """
+    """Detects and standardizes datetime columns, or creates one from 'Year' and 'Month'."""
     df = df.copy()
-    
-    # 1. Look for existing datetime columns
     dt_cols = df.select_dtypes(include=["datetime64[ns]", "datetime64[ns, UTC]"]).columns.tolist()
     if dt_cols:
         return df, dt_cols[0]
-    
-    # 2. Look for common date-like column names and convert them
     candidates = [c for c in df.columns if isinstance(c, str)]
     common = ["order_date", "date", "schedule_date", "planned_date", "dispatch_date", "arrival_date", "date_time"]
     for key in common:
@@ -58,32 +51,25 @@ def preprocess_dates(df: pd.DataFrame) -> tuple[pd.DataFrame, str | None]:
                 return df, col
             except Exception:
                 pass
-    
-    # 3. Handle 'Year' and 'Month' by combining them
     if {"Year", "Month"}.issubset(df.columns):
         try:
-            # Drop NaN from Year and Month before converting
             df.dropna(subset=["Year", "Month"], inplace=True)
-            df['combined_date'] = pd.to_datetime(
-                df["Year"].astype(int).astype(str) + "-" + 
-                df["Month"].astype(int).astype(str) + "-01",
+            df["combined_date"] = pd.to_datetime(
+                df["Year"].astype(int).astype(str) + "-" + df["Month"].astype(int).astype(str) + "-01",
                 errors="coerce"
             )
-            df.dropna(subset=["combined_date"], inplace=True) # drop rows where date conversion failed
+            df.dropna(subset=["combined_date"], inplace=True)
             return df, "combined_date"
         except Exception:
             pass
-
-    # 4. Fallback to trying to parse any other string column
     for c in candidates:
         try:
             parsed = pd.to_datetime(df[c], errors="raise")
-            if parsed.notna().mean() >= 0.8: # Require at least 80% valid dates
+            if parsed.notna().mean() >= 0.8:
                 df[c] = parsed
                 return df, c
         except Exception:
             continue
-    
     return df, None
 
 def apply_date_range_filter(df: pd.DataFrame, date_col: str, start_date: datetime, end_date: datetime) -> pd.DataFrame:
@@ -93,7 +79,6 @@ def apply_date_range_filter(df: pd.DataFrame, date_col: str, start_date: datetim
     df_filtered = df_filtered[df_filtered[date_col].notna()]
     if df_filtered.empty:
         return df_filtered
-    
     return df_filtered[(df_filtered[date_col].dt.date >= start_date) & (df_filtered[date_col].dt.date <= end_date)]
 
 # ------------------------------
@@ -121,48 +106,35 @@ def show_dc_wh_heatmap(df: pd.DataFrame):
     required = {"DC", "Warehouse", "Warehouse_Monthly_Demand"}
     if not required.issubset(df.columns):
         return
-
-    # Create pivot table
     pivot = df.pivot_table(index="DC", columns="Warehouse",
                            values="Warehouse_Monthly_Demand",
                            aggfunc="sum", fill_value=0)
     if pivot.empty:
         st.info("No data to display in heatmap.")
         return
-
     total_demand = pivot.values.sum()
     if total_demand == 0:
         st.info("Total demand is zero, cannot calculate percentages.")
         return
-
-    # Prepare x, y, z
     x = pivot.columns.tolist()
     y = pivot.index.tolist()
-    z = pivot.values  # actual values for hover
-    z_percent = (z / total_demand) * 100  # percentage for text display
-
+    z = pivot.values
+    z_percent = (z / total_demand) * 100
     text_labels = [[f"{val:.1f}%" for val in row] for row in z_percent]
-
     fig = go.Figure(
         data=go.Heatmap(
-            z=z,  # actual values drive color intensity
+            z=z,
             x=x,
             y=y,
             colorscale="Blues",
-            text=text_labels,  # percentage text inside tiles
+            text=text_labels,
             texttemplate="%{text}",
             textfont={"size": 12, "color": "black"},
             hovertemplate="DC: %{y}<br>Warehouse: %{x}<br>Demand: %{z}<extra></extra>"
         )
     )
-
-    fig.update_layout(
-        title="DC ↔ Warehouse Heatmap (Demand % of Total)",
-        xaxis_title="Warehouse",
-        yaxis_title="DC",
-        margin=dict(l=10, r=10, t=40, b=10)
-    )
-
+    fig.update_layout(title="DC ↔ Warehouse Heatmap (Demand % of Total)", xaxis_title="Warehouse", yaxis_title="DC",
+                      margin=dict(l=10, r=10, t=40, b=10))
     st.plotly_chart(fig, use_container_width=True)
 
 def show_wh_store_sankey(df: pd.DataFrame):
@@ -196,47 +168,32 @@ def show_wh_store_heatmap(df: pd.DataFrame):
     if demand_col is None or not {"Warehouse", "Store"}.issubset(df.columns):
         st.info("Expected columns not found for Warehouse → Store Heatmap.")
         return
-
-    # Pivot data
     pivot = df.pivot_table(index="Warehouse", columns="Store", values=demand_col, aggfunc="sum", fill_value=0)
     if pivot.empty:
         st.info("No data to display in heatmap.")
         return
-
-    # Calculate percentage for display
     total_demand = pivot.values.sum()
     percent_matrix = (pivot / total_demand * 100).round(1)
-
-    # Prepare x, y, z for Heatmap
     x = pivot.columns.tolist()
     y = pivot.index.tolist()
     z_actual = pivot.values
     z_percent = percent_matrix.values
-
     fig = go.Figure(
         data=go.Heatmap(
             z=z_percent,
             x=x,
             y=y,
             colorscale="Greens",
-            text=[[f"{val:.1f}%" for val in row] for row in z_percent],  # Show % inside tile
+            text=[[f"{val:.1f}%" for val in row] for row in z_percent],
             texttemplate="%{text}",
             textfont={"size": 12, "color": "black"},
             hovertemplate="Warehouse: %{y}<br>Store: %{x}<br>Demand: %{customdata}<extra></extra>",
-            customdata=z_actual  # Hover shows actual demand
+            customdata=z_actual
         )
     )
-
-    fig.update_layout(
-        title=f"Warehouse ↔ Store Heatmap ({demand_col})",
-        xaxis_title="Store",
-        yaxis_title="Warehouse",
-        margin=dict(l=10, r=10, t=40, b=10)
-    )
-
+    fig.update_layout(title=f"Warehouse ↔ Store Heatmap ({demand_col})", xaxis_title="Store", yaxis_title="Warehouse",
+                      margin=dict(l=10, r=10, t=40, b=10))
     st.plotly_chart(fig, use_container_width=True)
-
-
 
 def show_monthly_eoq_bar_chart(df: pd.DataFrame):
     if "monthly_eoq" not in df.columns or "ItemStat_Item" not in df.columns:
@@ -245,11 +202,9 @@ def show_monthly_eoq_bar_chart(df: pd.DataFrame):
     fig = px.bar(g, x="ItemStat_Item", y="monthly_eoq", title="Monthly Economic Order Quantity (EOQ) by Item")
     st.plotly_chart(fig, use_container_width=True)
 
-
 # ------------------------------
 # Scheduling visuals
 # ------------------------------
-
 def show_orders_by_route(df: pd.DataFrame):
     if "Route_ID" not in df.columns:
         st.info("Expected column 'Route_ID' not found for orders by route chart.")
@@ -268,13 +223,12 @@ def show_orders_by_echelon(df: pd.DataFrame):
     fig = px.pie(g, values="Order_Count", names="Echelon", title="Order Distribution by Echelon")
     st.plotly_chart(fig, use_container_width=True)
 
-
 def show_quantity_over_time(df: pd.DataFrame):
     df, date_col = preprocess_dates(df)
     if date_col is None or "Quantity" not in df.columns:
         st.info("Expected columns 'Quantity' and a datetime column not found.")
         return
-    df_agg = df.groupby(pd.Grouper(key=date_col, freq='D'))["Quantity"].sum().reset_index()
+    df_agg = df.groupby(pd.Grouper(key=date_col, freq="D"))["Quantity"].sum().reset_index()
     fig = px.line(df_agg, x=date_col, y="Quantity", title="Total Quantity Over Time")
     st.plotly_chart(fig, use_container_width=True)
 
@@ -287,25 +241,18 @@ SCHED_FILTER_WHITELIST = ["From", "Echelon", "SKU", "Route_ID"]
 def render_filters(df: pd.DataFrame, whitelist: list[str], key_prefix: str) -> pd.DataFrame:
     st.subheader("Filters")
     filtered = df.copy()
-
     usable_cols = [c for c in whitelist if c in filtered.columns]
-    
-    # Use columns to put filters on a single line
     cols = st.columns(len(usable_cols))
-    
     for i, colname in enumerate(usable_cols):
         with cols[i]:
             unique_vals = pd.Series(filtered[colname].dropna().unique()).sort_values().tolist()
             if len(unique_vals) > 0 and len(unique_vals) <= 200:
                 options = ["All"] + unique_vals
                 chosen = st.multiselect(f"Select {colname}", options, default=["All"], key=f"{key_prefix}_{colname}")
-                
                 if "All" not in chosen:
                     filtered = filtered[filtered[colname].isin(chosen)]
-
     with st.expander("View Filtered Data"):
         st.dataframe(filtered, use_container_width=True)
-        
     return filtered
 
 # ------------------------------
@@ -313,77 +260,53 @@ def render_filters(df: pd.DataFrame, whitelist: list[str], key_prefix: str) -> p
 # ------------------------------
 def display_section(title: str, files_dict: dict, is_distribution: bool = False):
     st.header(title)
-
-    # Create 3 columns for file selector, timeframe display, and date range input
-    col1, col2, col3 = st.columns([2, 2, 3])
-
-    # File selector
+    col1, col2, col3 = st.columns([2, 2, 2])
     with col1:
-        selected_key = st.selectbox(
-            f"Select {title.lower()} file:", 
-            list(files_dict.keys()), 
-            key=f"{title}_selectfile"
-        )
-
+        selected_key = st.selectbox(f"Select {title.lower()} file:", list(files_dict.keys()), key=f"{title}_selectfile")
     file_path = files_dict[selected_key]
     if not os.path.exists(file_path):
         st.error(f"⚠️ File not found: {file_path}")
         return
-
     df, date_col = preprocess_dates(load_excel(file_path))
     if df is None or df.empty:
         st.warning("No data found in the file.")
         return
-
-    # Show timeframe and date range picker on the same line
     if date_col:
         min_date = pd.to_datetime(df[date_col].min()).date()
         max_date = pd.to_datetime(df[date_col].max()).date()
-
-        
-
+        st.markdown(f"**Available Data Range:** {min_date.strftime('%d %b %Y')} → {max_date.strftime('%d %b %Y')}")
         with col2:
-            start_date, end_date = st.date_input(
-                "Select a date range",
-                [min_date, max_date],
-                key=f"{title}_date_range"
-            )
-            filtered_df_by_date = apply_date_range_filter(df, date_col, start_date, end_date)
+            from_date = st.date_input("From Date", value=min_date, min_value=min_date, max_value=max_date,
+                                      key=f"{title}_from_date")
+        with col3:
+            to_date = st.date_input("To Date", value=max_date, min_value=min_date, max_value=max_date,
+                                    key=f"{title}_to_date")
+        if from_date > to_date:
+            st.error("⚠️ 'From Date' cannot be later than 'To Date'.")
+            filtered_df_by_date = df
+        else:
+            filtered_df_by_date = apply_date_range_filter(df, date_col, from_date, to_date)
     else:
         st.info("No datetime column to filter by.")
         filtered_df_by_date = df
-    
     tab1, tab2 = st.tabs(["📊 Data, Filters & Visuals", "📥 Download"])
-
     with tab1:
         key_prefix = selected_key.replace(" ", "_")
         if is_distribution:
             final_filtered_df = render_filters(filtered_df_by_date, DISTRO_FILTER_WHITELIST, key_prefix)
         else:
             final_filtered_df = render_filters(filtered_df_by_date, SCHED_FILTER_WHITELIST, key_prefix)
-        
         st.subheader("Visualizations")
-        
         if is_distribution:
             if selected_key == "DC → Warehouse Distribution":
-                col_viz1, col_viz2 = st.columns(2)
-                
                 show_dc_wh_sankey(final_filtered_df)
-                
                 show_dc_wh_heatmap(final_filtered_df)
             elif selected_key == "Warehouse → Store Distribution":
-                col_viz1, col_viz2 = st.columns(2)
                 show_wh_store_sankey(final_filtered_df)
-                
                 show_wh_store_heatmap(final_filtered_df)
-                
-
-        else: # Scheduling
-            col_viz3, col_viz4 = st.columns(2)
-            
+        else:
             show_orders_by_echelon(final_filtered_df)
             show_quantity_over_time(final_filtered_df)
-
     with tab2:
         st.subheader("Download Options")
         filtered_buffer = io.BytesIO()
@@ -396,7 +319,6 @@ def display_section(title: str, files_dict: dict, is_distribution: bool = False)
             file_name=f"filtered_{os.path.basename(file_path)}",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
-
         full_buffer = io.BytesIO()
         with pd.ExcelWriter(full_buffer, engine="openpyxl") as writer:
             df.to_excel(writer, index=False)
@@ -419,6 +341,3 @@ def results_page():
 
 if __name__ == "__main__":
     results_page()
-
-
-    
