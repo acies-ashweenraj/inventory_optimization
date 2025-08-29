@@ -24,9 +24,9 @@ df.columns = df.columns.str.strip()
 # --- Helper Function ---
 def format_number_short(n):
     if n >= 1_000_000:
-        return f"{n/1_000_000:.1f}M"
+        return f"{n/1_000_000:.1f} M"
     elif n >= 1_000:
-        return f"{n/1_000:.1f}K"
+        return f"{n/1_000:.1f} K"
     else:
         return str(int(n))
 
@@ -82,27 +82,13 @@ with tabs[0]:
             return "Understocked"
 
     df["Stock Status"] = df.apply(classify, axis=1)
-    def format_number_short(n):
-        if n >= 1_000_000:
-            return f"{n/1_000_000:.2f}M"
-        elif n >= 1_000:
-            return f"{n/1_000:.2f}K"
-        else:
-            return str(int(n))
+
 
 
     # --- KPI Metrics ---
     total_skus = df["SKU ID"].nunique()
     total_stock = int(df["Current Stock Quantity"].sum())
     total_value = df["Stock Value"].sum()
-
-    def format_number_short(n):
-        if n >= 1_000_000:
-            return f"{n/1_000_000:.2f}M"
-        elif n >= 1_000:
-            return f"{n/1_000:.2f}K"
-        else:
-            return f"{int(n):,}"   # formatted with commas
 
     # --- KPI Section ---
     st.markdown("### Key Inventory Metrics")
@@ -293,30 +279,53 @@ with tabs[0]:
 
     cause_card, risk_card, action_card = st.columns(3)
 
+    # 🔳 General pastel card template
+    def pastel_card(title, text, bg_color, text_color):
+        return f"""
+            <div style="
+                background-color:{bg_color};
+                padding:15px;
+                border-radius:10px;
+                border:1px solid #ddd;
+                min-height:140px;">
+                <strong style="color:{text_color};">{title}</strong>
+                <p style="color:{text_color}; margin-top:8px;">{text}</p>
+            </div>
+        """
+
+    # 🎨 Colors (soft pastel tones)
+    PASTEL_RED_BG = "#fdecea"
+    PASTEL_RED_TEXT = "#7f1d1d"
+
+    PASTEL_YELLOW_BG = "#fffbea"
+    PASTEL_YELLOW_TEXT = "#92400e"
+
+    PASTEL_GREEN_BG = "#ecfdf5"
+    PASTEL_GREEN_TEXT = "#065f46"
+
     if sku_row["Stock Status"] == "Understocked":
         with cause_card:
-            st.error("**Cause**\n\nDemand exceeds available stock.")
+            st.markdown(pastel_card("Cause", "Demand exceeds available stock.", PASTEL_RED_BG, PASTEL_RED_TEXT), unsafe_allow_html=True)
         with risk_card:
-            st.warning("**Risk**\n\nPossible stockouts, unmet customer demand.")
+            st.markdown(pastel_card("Risk", "Possible stockouts, unmet customer demand.", PASTEL_YELLOW_BG, PASTEL_YELLOW_TEXT), unsafe_allow_html=True)
         with action_card:
-            st.success("**Action**\n\nIncrease orders, review supplier lead times.")
+            st.markdown(pastel_card("Action", "Increase orders, review supplier lead times.", PASTEL_GREEN_BG, PASTEL_GREEN_TEXT), unsafe_allow_html=True)
 
     elif sku_row["Stock Status"] == "Overstocked":
         with cause_card:
-            st.error("**Cause**\n\nStock level far exceeds demand.")
+            st.markdown(pastel_card("Cause", "Stock level far exceeds demand.", PASTEL_RED_BG, PASTEL_RED_TEXT), unsafe_allow_html=True)
         with risk_card:
-            st.warning("**Risk**\n\nHigh holding cost, risk of obsolescence.")
+            st.markdown(pastel_card("Risk", "High holding cost, risk of obsolescence.", PASTEL_YELLOW_BG, PASTEL_YELLOW_TEXT), unsafe_allow_html=True)
         with action_card:
-            st.success("**Action**\n\nPause reorders, run clearance, review forecast.")
+            st.markdown(pastel_card("Action", "Pause reorders, run clearance, review forecast.", PASTEL_GREEN_BG, PASTEL_GREEN_TEXT), unsafe_allow_html=True)
 
-    else:
+    else:  # Balanced
         with cause_card:
-            st.info("**Cause**\n\nStock aligned with demand.")
+            st.markdown(pastel_card("Cause", "Stock aligned with demand.", PASTEL_GREEN_BG, PASTEL_GREEN_TEXT), unsafe_allow_html=True)
         with risk_card:
-            st.info("**Risk**\n\nMinimal—inventory is balanced.")
+            st.markdown(pastel_card("Risk", "Minimal — inventory is balanced.", PASTEL_YELLOW_BG, PASTEL_YELLOW_TEXT), unsafe_allow_html=True)
         with action_card:
-            st.success("**Action**\n\nMaintain current strategy, keep monitoring.")
-
+            st.markdown(pastel_card("Action", "Maintain current strategy, keep monitoring.", PASTEL_GREEN_BG, PASTEL_GREEN_TEXT), unsafe_allow_html=True)
 
    # --- Chart 3: Top SKUs by Custom Metric ---
 
@@ -393,16 +402,7 @@ with tabs[1]:
 
 # ----------------------------- TAB 3: Segmentation -----------------------------
 with tabs[2]:
-    st.subheader("SKU Segmentation & Inactivity")
 
-    # Ensure required fields
-    def format_number_short(n):
-        if n >= 1_000_000:
-            return f"{n/1_000_000:.1f}M"
-        elif n >= 1_000:
-            return f"{n/1_000:.1f}K"
-        else:
-            return str(int(n))
 
     st.markdown("""
         <style>
@@ -411,17 +411,18 @@ with tabs[2]:
                 color: white;
             }
             .metric-box {
-                background-color: #1f1f1f;
-                color: white;
+                background-color: white; /* bluish tone */
+                color: black;
                 padding: 20px;
-                border-radius: 10px;
+                border-radius: 12px;
                 border: 1px solid #444;
                 text-align: center;
+                box-shadow: 2px 2px 10px rgba(0,0,0,0);
             }
         </style>
     """, unsafe_allow_html=True)
 
-    st.markdown("<h1 style='text-align: center;'>SKU Segmentation & Inactivity Analysis</h1>", unsafe_allow_html=True)
+    st.markdown("<h3>SKU Segmentation & Inactivity Analysis</h3>", unsafe_allow_html=True)
 
     if 'merged_df' not in st.session_state:
         st.warning("Please upload and submit data in the Upload page first.")
