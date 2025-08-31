@@ -6,3 +6,4 @@ xlsxwriter
 python-dotenv
 requests
 plotly
+stockpyl
