@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -23,9 +24,9 @@ df.columns = df.columns.str.strip()
 # --- Helper Function ---
 def format_number_short(n):
     if n >= 1_000_000:
-        return f"{n/1_000_000:.1f}M"
+        return f"{n/1_000_000:.1f} M"
     elif n >= 1_000:
-        return f"{n/1_000:.1f}K"
+        return f"{n/1_000:.1f} K"
     else:
         return str(int(n))
 
@@ -81,13 +82,7 @@ with tabs[0]:
             return "Understocked"
 
     df["Stock Status"] = df.apply(classify, axis=1)
-    def format_number_short(n):
-        if n >= 1_000_000:
-            return f"{n/1_000_000:.2f}M"
-        elif n >= 1_000:
-            return f"{n/1_000:.2f}K"
-        else:
-            return str(int(n))
+
 
 
     # --- KPI Metrics ---
@@ -95,19 +90,27 @@ with tabs[0]:
     total_stock = int(df["Current Stock Quantity"].sum())
     total_value = df["Stock Value"].sum()
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Total SKUs", total_skus)
-    col2.metric("Total Stock Quantity", total_stock)
-    col3.metric("Inventory Value (₹)", f"{format_number_short(total_value)}")
+    # --- KPI Section ---
+    st.markdown("### Key Inventory Metrics")
 
-    # --- Smooth Expand Transition for Inventory Health ---
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric(label="**Total SKUs**", value=f"{total_skus:,}")
+    with col2:
+        st.metric(label="**Total Stock Quantity**", value=f"{format_number_short(total_stock)}")
+    with col3:
+        st.metric(label="**Inventory Value (₹)**", value=f"{format_number_short(total_value)}")
+
+    # --- Inventory Health Section ---
     summary = df["Stock Status"].value_counts().to_dict()
 
-    with st.expander("Show Inventory Stock Health (Under / Over / Ideal)"):
+    st.markdown("### Inventory Health Breakdown")
+    with st.expander("Show Inventory Stock Health (Under / Over / Ideal)", expanded=True):
         col4, col5, col6 = st.columns(3)
-        col4.metric("Understocked", summary.get("Understocked", 0))
-        col5.metric("Overstocked", summary.get("Overstocked", 0))
-        col6.metric("Ideal Stock", summary.get("Ideal", 0))
+        col4.metric("Understocked", f"🔻 {summary.get('Understocked', 0):,}")
+        col5.metric("Overstocked", f"🔺 {summary.get('Overstocked', 0):,}")
+        col6.metric("Ideal Stock", f"✅ {summary.get('Ideal', 0):,}")
+
 
     # --- Filter Section with "ALL" Option ---
     st.markdown("### Filter by Stock Health")
@@ -131,7 +134,7 @@ with tabs[0]:
 
     st.markdown("---")
 
-    # --- Chart 1: Stock + Safety Stock vs Demand (with user input) ---
+   # --- Chart 1: Stock + Safety Stock vs Demand (with user input) ---
     st.subheader("Stock + Safety Stock vs Demand")
 
     # --- User Input: Service Level Percentage ---
@@ -146,7 +149,7 @@ with tabs[0]:
     st.markdown(f"**Z-score calculated for {service_level_input}% service level:** `{Z}`")
 
     # --- Safety Stock Calculation ---
-    df_filtered["Daily Demand StdDev"] = df_filtered["Avg Daily Demand"] * 0.5  # Assume 10% coefficient of variation
+    df_filtered["Daily Demand StdDev"] = df_filtered["Avg Daily Demand"] * 0.5  # Assume 50% coefficient of variation
     df_filtered["Safety Stock"] = Z * df_filtered["Daily Demand StdDev"] * np.sqrt(df_filtered["Average Lead Time"])
 
     # --- Total Coverage and Demand ---
@@ -157,99 +160,172 @@ with tabs[0]:
     top15 = df_filtered.sort_values("Total Demand", ascending=False).head(15)
 
     # --- Plotting ---
-    fig_stock = go.Figure()
+    from plotly.subplots import make_subplots
 
-    # Bar: Current Stock
+    fig_stock = make_subplots(specs=[[{"secondary_y": True}]])
+
+    # Bar: Current Stock (primary axis)
     fig_stock.add_trace(go.Bar(
         x=top15["SKU ID"],
         y=top15["Current Stock Quantity"],
         name="Current Stock",
         marker_color="#4e79a7"
-    ))
+    ), secondary_y=False)
 
-    # Bar: Safety Stock (stacked)
+    # Bar: Safety Stock (secondary axis)
     fig_stock.add_trace(go.Bar(
         x=top15["SKU ID"],
         y=top15["Safety Stock"],
         name="Safety Stock",
-        marker_color="#f28e2c"
-    ))
+        marker_color="#f28e2c",
+        opacity=0.7
+    ), secondary_y=True)
 
-    # Line: Total Demand
+    # Line: Total Demand (primary axis)
     fig_stock.add_trace(go.Scatter(
         x=top15["SKU ID"],
         y=top15["Total Demand"],
         name="Total Demand",
         mode="lines+markers",
         line=dict(color="#e15759", width=3)
-    ))
+    ), secondary_y=False)
 
     # Layout
     fig_stock.update_layout(
-        barmode='stack',
         xaxis_title="Top SKUs",
-        yaxis_title="Quantity",
-        title=f"Stock + Safety Stock vs Demand ({service_level_input:.1f}% Service Level)",
-        height=450
+        yaxis_title="Stock / Demand Quantity",
+        title=f"Stock vs Demand with Safety Stock ({service_level_input:.1f}% Service Level)",
+        height=450,
+        barmode="group"  # group so bars don't stack
     )
+
+    # Secondary axis title
+    fig_stock.update_yaxes(title_text="Safety Stock (Secondary Axis)", secondary_y=True)
 
     st.plotly_chart(fig_stock, use_container_width=True)
 
 
     # --- Chart 2: RCA Scatter Plot ---
     st.subheader("Root Cause Analysis (Stock vs Demand)")
-    fig_rca = px.scatter(
-        df_filtered,
-        x="Order Quantity sum",
-        y="Current Stock Quantity",
-        color="Stock Status",
-        hover_data=["SKU ID", "Avg Daily Demand", "Safety Stock"],
-        color_discrete_map={"Understocked": "red", "Overstocked": "blue", "Ideal": "green"},
-        labels={"Order Quantity sum": "Total Demand", "Current Stock Quantity": "Current Stock"},
-        title="SKU Inventory Positioning"
-    )
-    fig_rca.update_layout(height=450)
+    fig_rca = px.scatter( df_filtered, x="Order Quantity sum", y="Current Stock Quantity", color="Stock Status", hover_data=["SKU ID", "Avg Daily Demand", "Safety Stock"], color_discrete_map={"Understocked": "red", "Overstocked": "blue", "Ideal": "green"}, labels={"Order Quantity sum": "Total Demand", "Current Stock Quantity": "Current Stock"}, title="SKU Inventory Positioning" ) 
+    fig_rca.update_layout(height=450) 
     st.plotly_chart(fig_rca, use_container_width=True)
-
-    # --- RCA Explanation for a Selected SKU ---
+    # --- RCA Explanation Section ---
     st.subheader("RCA Explanation by SKU")
     sku_selected = st.selectbox("Select a SKU:", options=df_filtered["SKU ID"].unique())
     sku_row = df_filtered[df_filtered["SKU ID"] == sku_selected].iloc[0]
 
-    st.write(f"**SKU ID:** `{sku_selected}`")
-    st.write(f"**Stock Status:** `{sku_row['Stock Status']}`")
-    st.write(f"**Current Stock:** {sku_row['Current Stock Quantity']:.0f}")
-    st.write(f"**Total Demand (Year):** {sku_row['Order Quantity sum']:.0f}")
-    st.write(f"**Average Daily Demand:** {sku_row['Avg Daily Demand']:.2f}")
-    st.write(f"**Safety Stock:** {sku_row['Safety Stock']:.2f}")
-    st.write(f"**Lead Time:** {sku_row['Average Lead Time']} days")
+    # --- KPI CARDS ---
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Current Stock", f"{int(sku_row['Current Stock Quantity'])}")
+    col2.metric("Total Demand (Year)", f"{int(sku_row['Order Quantity sum'])}")
+    col3.metric("Safety Stock", f"{sku_row['Safety Stock']:.2f}")
+    col4.metric("Lead Time (Days)", f"{sku_row['Average Lead Time']}")
+    # --- Stock Status Gauge ---
+ 
+    reorder_point = sku_row["Avg Daily Demand"] * sku_row["Average Lead Time"] + sku_row["Safety Stock"]
+    demand = sku_row["Order Quantity sum"]
 
-    # --- RCA Narrative ---
+
+    fig_gauge = go.Figure(go.Indicator(
+        mode="gauge+number+delta",
+        value=sku_row["Current Stock Quantity"],
+        delta={'reference': demand, 'increasing': {'color': "red"}},
+        title={'text': f"Stock Level (SKU: {sku_selected})"},
+        gauge={
+            'axis': {'range': [0, max(demand*1.5, sku_row["Current Stock Quantity"])]},
+            'bar': {'color': "blue"},
+            'steps': [
+                {'range': [0, reorder_point], 'color': "#FF9999"},      # Understock
+                {'range': [reorder_point, demand], 'color': "#99CC99"}, # Optimal
+                {'range': [demand, max(demand*1.5, sku_row["Current Stock Quantity"])], 'color': "#FFCC99"} # Overstock
+            ],
+            'threshold': {
+                'line': {'color': "black", 'width': 4},
+                'value': sku_row["Current Stock Quantity"]
+            }
+        }
+    ))
+    fig_gauge.update_layout(
+    margin=dict(l=50, r=180, t=80, b=50),
+    height=300, 
+    )
+    fig_gauge.add_annotation(
+        x=1.25, y=0.9, xref="paper", yref="paper", showarrow=False,
+        text="<b>Legend:</b><br>"
+            "<span style='color:#FF9999'>■</span> Understocked<br>"
+            "<span style='color:#99CC99'>■</span> Optimal<br>"
+            "<span style='color:#FFCC99'>■</span> Overstocked",
+        align="left",
+        bgcolor="white",  
+        bordercolor="black",
+        borderwidth=0.5
+    )
+
+
+    fig_gauge.update_layout(
+        margin=dict(l=50, r=180, t=80, b=50) 
+    )
+
+    st.plotly_chart(fig_gauge, use_container_width=True)
+    st.markdown(f"""
+    **Legend:**
+    - **Red:** Understocked (< {int(reorder_point)})
+    - **Green:** Optimal ({int(reorder_point)} – {int(demand)})
+    - **Orange:** Overstocked (> {int(demand)})
+    """)
+    # --- ROOT CAUSE & ACTION CARDS ---
     st.markdown("### Root Cause & Recommendation")
-    if sku_row["Stock Status"] == "Understocked":
-        st.error("This SKU has **Low DOS**. You're at risk of stockouts.")
-        st.markdown("""
-        - **Cause**: Demand is exceeding your current inventory.
-        - **Recommended Stock**: Add buffer above lead time demand.
-        - **Action**: Increase order frequency or safety stock.
-        - **Hint**: Check supplier delays or inaccurate forecasts.
-        """)
-    elif sku_row["Stock Status"] == "Overstocked":
-        st.info("This SKU has **High DOS**. You may have tied up too much capital.")
-        st.markdown("""
-        - **Cause**: Current stock significantly exceeds demand.
-        - **Risk**: Higher holding cost, obsolescence.
-        - **Action**: Pause reorders, clear slow-movers.
-        - **Hint**: Check outdated demand forecast.
-        """)
-    else:
-        st.success("This SKU has **Adequate DOS**.")
-        st.markdown("""
-        - You’ve balanced stock and demand efficiently.
-        - Keep monitoring lead time and demand trends.
-        """)
 
-    st.markdown("---")
+    cause_card, risk_card, action_card = st.columns(3)
+
+    # 🔳 General pastel card template
+    def pastel_card(title, text, bg_color, text_color):
+        return f"""
+            <div style="
+                background-color:{bg_color};
+                padding:15px;
+                border-radius:10px;
+                border:1px solid #ddd;
+                min-height:140px;">
+                <strong style="color:{text_color};">{title}</strong>
+                <p style="color:{text_color}; margin-top:8px;">{text}</p>
+            </div>
+        """
+
+    # 🎨 Colors (soft pastel tones)
+    PASTEL_RED_BG = "#fdecea"
+    PASTEL_RED_TEXT = "#7f1d1d"
+
+    PASTEL_YELLOW_BG = "#fffbea"
+    PASTEL_YELLOW_TEXT = "#92400e"
+
+    PASTEL_GREEN_BG = "#ecfdf5"
+    PASTEL_GREEN_TEXT = "#065f46"
+
+    if sku_row["Stock Status"] == "Understocked":
+        with cause_card:
+            st.markdown(pastel_card("Cause", "Demand exceeds available stock.", PASTEL_RED_BG, PASTEL_RED_TEXT), unsafe_allow_html=True)
+        with risk_card:
+            st.markdown(pastel_card("Risk", "Possible stockouts, unmet customer demand.", PASTEL_YELLOW_BG, PASTEL_YELLOW_TEXT), unsafe_allow_html=True)
+        with action_card:
+            st.markdown(pastel_card("Action", "Increase orders, review supplier lead times.", PASTEL_GREEN_BG, PASTEL_GREEN_TEXT), unsafe_allow_html=True)
+
+    elif sku_row["Stock Status"] == "Overstocked":
+        with cause_card:
+            st.markdown(pastel_card("Cause", "Stock level far exceeds demand.", PASTEL_RED_BG, PASTEL_RED_TEXT), unsafe_allow_html=True)
+        with risk_card:
+            st.markdown(pastel_card("Risk", "High holding cost, risk of obsolescence.", PASTEL_YELLOW_BG, PASTEL_YELLOW_TEXT), unsafe_allow_html=True)
+        with action_card:
+            st.markdown(pastel_card("Action", "Pause reorders, run clearance, review forecast.", PASTEL_GREEN_BG, PASTEL_GREEN_TEXT), unsafe_allow_html=True)
+
+    else:  # Balanced
+        with cause_card:
+            st.markdown(pastel_card("Cause", "Stock aligned with demand.", PASTEL_GREEN_BG, PASTEL_GREEN_TEXT), unsafe_allow_html=True)
+        with risk_card:
+            st.markdown(pastel_card("Risk", "Minimal — inventory is balanced.", PASTEL_YELLOW_BG, PASTEL_YELLOW_TEXT), unsafe_allow_html=True)
+        with action_card:
+            st.markdown(pastel_card("Action", "Maintain current strategy, keep monitoring.", PASTEL_GREEN_BG, PASTEL_GREEN_TEXT), unsafe_allow_html=True)
 
    # --- Chart 3: Top SKUs by Custom Metric ---
 
@@ -326,16 +402,7 @@ with tabs[1]:
 
 # ----------------------------- TAB 3: Segmentation -----------------------------
 with tabs[2]:
-    st.subheader("SKU Segmentation & Inactivity")
 
-    # Ensure required fields
-    def format_number_short(n):
-        if n >= 1_000_000:
-            return f"{n/1_000_000:.1f}M"
-        elif n >= 1_000:
-            return f"{n/1_000:.1f}K"
-        else:
-            return str(int(n))
 
     st.markdown("""
         <style>
@@ -344,17 +411,18 @@ with tabs[2]:
                 color: white;
             }
             .metric-box {
-                background-color: #1f1f1f;
-                color: white;
+                background-color: white; /* bluish tone */
+                color: black;
                 padding: 20px;
-                border-radius: 10px;
+                border-radius: 12px;
                 border: 1px solid #444;
                 text-align: center;
+                box-shadow: 2px 2px 10px rgba(0,0,0,0);
             }
         </style>
     """, unsafe_allow_html=True)
 
-    st.markdown("<h1 style='text-align: center;'>SKU Segmentation & Inactivity Analysis</h1>", unsafe_allow_html=True)
+    st.markdown("<h3>SKU Segmentation & Inactivity Analysis</h3>", unsafe_allow_html=True)
 
     if 'merged_df' not in st.session_state:
         st.warning("Please upload and submit data in the Upload page first.")
@@ -462,7 +530,7 @@ with tabs[2]:
         else:
             inactive_summary = filtered_df_inactivity['Inactivity Bucket'].value_counts().reset_index()
             inactive_summary.columns = ['Inactivity Period', 'Inactive SKU Count']
-            # st.bar_chart(inactive_summary.set_index('Inactivity Period'))
+            st.bar_chart(inactive_summary.set_index('Inactivity Period'))
         
         # --- Inactivity Table View ---
             # --- Inactivity Analysis Table with Time Granularity (No Range Slider) ---

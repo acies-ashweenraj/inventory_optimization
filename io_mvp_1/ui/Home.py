@@ -1,13 +1,17 @@
 import streamlit as st
-
+from pathlib import Path
 st.set_page_config(layout="wide", page_title="Inventory Assistant")
+base_dir = Path(__file__).resolve().parent
 
+# Logo path (same folder as Home.py)
+logo_path = base_dir / "acies_global_logo.jpeg"
 
 col1, col2 = st.columns([6, 1])
 with col1:
     st.markdown("## Inventory Analytics & Assistant")
 with col2:
-    st.image(r"D:\Ashween\Desktop\meio\inventory_optimization\io_mvp_1\ui\acies_global_logo.jpeg", width=80)  
+    # st.image(r"C:\Users\Mythreye\Desktop\Meio_mvp1\inventory_optimization\io_mvp_1\ui\acies_global_logo.jpeg", width=80)
+    st.image(str(logo_path), width=80)  
 st.markdown("---")
 
 
